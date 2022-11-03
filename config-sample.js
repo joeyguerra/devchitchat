@@ -1,4 +1,4 @@
-module.exports = {
+export default {
 	dataPath: __dirname + '/data',
 	port: process.env.PORT || 5000,
     site: {

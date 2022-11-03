@@ -198,7 +198,7 @@
 				if(v.messageWasDoubleClicked){
 					var fromId = e.target.parentNode.parentNode.getAttribute("data-from");
 					var from = roster.find(function(i, u){
-						return fromId === u._id
+						return fromId === u.id
 					});
 					v.messageWasDoubleClicked({text: e.target.innerHTML, from: from});
 				}
@@ -255,7 +255,7 @@
 			win.addEventListener('resize', self, true);
 
 		    socket.emit('nickname', win.member.username, function(exists){
-		    	roster.push({username: win.member.username, name: win.member.displayName, avatar: win.member.avatar});
+				roster.push({username: win.member.username, name: win.member.displayName, avatar: win.member.avatar});
 		    });
 
 			socket.emit('send previous messages', 'hello?', function(list){

@@ -23,3 +23,4 @@ boundaries/queues
 web/uploads
 incoming
 outgoing
+.data

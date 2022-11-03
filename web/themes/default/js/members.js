@@ -38,7 +38,7 @@
 				var self = this;
 				var username = window.location.href.split('/');
 				username = username[username.length-1];
-				var url = '/members/' + username + '.json';
+				const url = '/members/' + username + '.json';
 				xhr.open("GET", url, true);
 				xhr.onload = function(e){
 					this.onload(e);

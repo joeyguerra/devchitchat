@@ -1,5 +1,5 @@
 var test = require("tap").test;
-var authenticator = require('../../lib/authenticator')("some super secret secret");
+var authenticator = require('../../lib/authenticator/index.mjs')("some super secret secret");
 var uuid = require('uuid');
 var signer = require('jws');
 

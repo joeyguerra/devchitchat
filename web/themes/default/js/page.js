@@ -13,7 +13,6 @@
 			var self = this;
 			var xhr = new XMLHttpRequest();
 			var formData = new FormData();
-			console.log(files);
 			xhr.open("POST", self.fileUploadUrl, true);
 			xhr.onload = function(e){self.onload(e);};
 			for(var i = 0; i < files.length;i++){
@@ -28,7 +27,6 @@
 				file = "//{host}{file}".replace(/{host}/, window.location.host).replace(/{file}/, file);
 				model.push(file);
 			});
-			console.log(model);
 		}
 	};
 	var contentView = {
@@ -37,7 +35,6 @@
 			this.addImage(info);
 		}
 		, addImage: function(image){
-			console.log(this.container.selectionStart, this.container.selectionEnd);
 			var imageTag = '<img src="' + image.src + '" />';
 			var start = this.container.selectionStart;
 			var end = imageTag.length;

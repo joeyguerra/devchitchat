@@ -12,4 +12,4 @@ Folder.isValid = function(fileName){
 	return /^\w+(\.\w+)?$/.test(fileName);
 };
 
-module.exports = Folder;
+export default Folder;

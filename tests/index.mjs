@@ -1,8 +1,8 @@
 var test = require("tap").test;
 var bus = null;
-var Commands = require('../app/commands/');
+var Commands = require('../app/commands/index.mjs');
 test("inprocbus", function (t) {
-	bus = require('../boundaries/inprocbus');
+	bus = require('../boundaries/inprocbus.mjs');
 	bus.start();
 	bus.iHandle('test.message', {
 		handle: function(command){

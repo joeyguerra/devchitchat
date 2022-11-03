@@ -44,13 +44,13 @@ function SendNicknames(message){
 	Command.apply(this, [message]);
 	this.header.name = 'SendNicknames';
 }
-module.exports = {
-	AddMember: AddMember
-	, UpdateMember: UpdateMember
-	, DeleteMember: DeleteMember
-	, ChangeAvatar: ChangeAvatar
-	, ChangeBackground: ChangeBackground
-	, SendNewChatMessage: SendNewChatMessage
-	, SendNicknames: SendNicknames
-	, Command: Command
+export default {
+	AddMember
+	, UpdateMember
+	, DeleteMember
+	, ChangeAvatar
+	, ChangeBackground
+	, SendNewChatMessage
+	, SendNicknames
+	, Command
 };

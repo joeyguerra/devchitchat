@@ -77,9 +77,12 @@
 			if(imageUrlPattern.test(message.text)){
 				return message;
 			}
-			message.text = URI.withinString(message.text, function(url){
-				return '<a href="' + includeHttp(url) + '" target="_blank">' + url + '</a>';
-			});
+			const pattern = /((http|https|ftp|ftps)\:\/\/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(\/\S*)?)/g
+			const matches = pattern.exec(message.text)
+
+			// message.text = URI.withinString(message.text, function(url){
+			// 	return '<a href="' + includeHttp(url) + '" target="_blank">' + url + '</a>';
+			// });
 			return message;
 		}
 		function hookForDataImage(message){
@@ -106,9 +109,9 @@
 			if(!v) return;
 			if(!v.from) return;
 			var originalHeight = discussion.scrollHeight;
-			var lastMessage = discussion.querySelector("[data-from='" + v.from._id + "']:first-child");
+			var lastMessage = discussion.querySelector("[data-from='" + v.from.id + "']:first-child");
 			var elem = template.cloneNode(true);
-			elem.setAttribute('data-from', v.from._id);;
+			elem.setAttribute('data-from', v.from.id);
 			elem.addEventListener('dblclick', function(e){
 				delegate.messageWasDoubleClicked(e);
 			}, true);

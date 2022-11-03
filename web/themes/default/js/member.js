@@ -89,7 +89,7 @@
 			, resize: function(e){
 				this.views[0].controller.resize({h: e.target.document.documentElement.clientHeight, w: e.target.document.documentElement.clientWidth});
 			}
-			, fileUploadUrl: '/member/' + document.getElementById('_id').value + '/avatars.json'
+			, fileUploadUrl: '/member/' + document.getElementById('id').value + '/avatars.json'
 			, fileWasUploaded: function(target){
 				var m = JSON.parse(target.responseText);
 				var avatar = "//{host}{avatar}".replace(/{host}/, window.location.host).replace(/{avatar}/, m.avatar);
@@ -97,7 +97,7 @@
 			}
 		};
 		var backgroundHandler = {
-			fileUploadUrl: '/member/' + document.getElementById('_id').value + '/backgrounds.json'
+			fileUploadUrl: '/member/' + document.getElementById('id').value + '/backgrounds.json'
 			, fileWasUploaded: function(target){
 				var m = JSON.parse(target.responseText);
 				var background = "//{host}{background}".replace(/{host}/, window.location.host).replace(/{background}/, m.background);
