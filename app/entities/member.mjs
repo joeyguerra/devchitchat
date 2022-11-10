@@ -1,78 +1,19 @@
 import moment from 'moment'
-import Observable from '../../lib/observable.mjs'
-var Member = function Member(obj){
-	var self = Observable()
-	var name = null
-	Object.defineProperty(this, 'name', {
-		get: function(){return name}
-		, set: function(v){
-			var old = name
-			self.changed('name', old, v)
-			name = v
-		}
-		, enumerable: true
-	});
+import {makeKeyValueObservable} from '../../lib/Observable.mjs'
 
-	let displayName = null
-	Object.defineProperty(this, 'displayName', {
-		get: function(){return name}
-		, set: function(v){
-		}
-		, enumerable: true
-	})
-	
-	var username = null
-	Object.defineProperty(this, 'username', {
-		get: function(){return username}
-		, set: function(v){
-			var old = username
-			self.changed('username', old, v)
-			username = v
-		}
-		, enumerable: true
-	})
-
-
-	var token = null
-	Object.defineProperty(this, 'token', {
-		get: function(){return token}
-		, set: function(v){
-			var old = token
-			self.changed('token', old, v)
-			token = v
-		}
-		, enumerable: true
-	})
-
-	var avatar = null
-	Object.defineProperty(this, 'avatar', {
-		get: function(){return avatar}
-		, set: function(v){
-			var old = avatar
-			self.changed('avatar', old, v)
-			avatar = v
-		}
-		, enumerable: true
-	})
-	
-	var time = (new Date()).getTime();
-	Object.defineProperty(this, 'time', {
-		get: function(){return time;}
-		, set: function(v){
-			var old = time
-			self.changed('time', old, v)
-			time = v
-		}
-		, enumerable: true
-	});
-	for(var key in obj){
-		try{
-			this[key] = obj[key]
-		}catch(e){
-			console.error('trying to set properties', e)
-		}
+class User {
+	constructor(obj){
+		this.name = obj?.name
+		this.displayName = obj?.displayName ?? this.name
+		this.username = obj?.username
+		this.token = obj?.token
+		this.avatar = obj?.avatar
+		this.time = obj?.time ?? Date.now()
+		this.id = obj?.id
 	}
-	return this
+}
+const Member = function Member(obj){
+	return makeKeyValueObservable(new User(obj))
 };
 function byDate(a, b){
 	if(a.time === b.time) return 0;
@@ -91,6 +32,7 @@ Member.prototype = {
 	}
 };
 Member.pipbot = new Member({name: 'pipbot', avatar: '/public/images/bot.png', username: 'pipbot'});
+Member.unknown = new Member()
 Member.sortByDate = function(list){
 	return list.sort(byDate);
 };

@@ -1,5 +1,5 @@
 import Datastore from '../lib/db.mjs'
-import Member from '../app/entities/member.mjs'
+import Member from '../app/entities/Member.mjs'
 import Message from '../app/entities/message.mjs'
 let config = null
 

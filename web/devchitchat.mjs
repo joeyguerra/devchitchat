@@ -2,7 +2,7 @@ import os from 'os'
 import cookieParser from 'cookie-parser'
 import cookieSession from 'cookie-session'
 import chatServer from './chat.mjs'
-import web from './index.mjs'
+import web from './server.mjs'
 
 var ifaces = os.networkInterfaces()
 var addresses = []

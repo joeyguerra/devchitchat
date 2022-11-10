@@ -1,7 +1,7 @@
 import signer from 'jws'
 import Commands from '../app/commands/index.mjs'
 import Events from '../app/events/index.mjs'
-import Member from '../app/entities/member.mjs'
+import Member from '../app/entities/Member.mjs'
 import debug from 'debug'
 import {Server} from 'socket.io'
 import {v4 as uuid} from 'uuid'
@@ -60,51 +60,46 @@ export default (web) => {
 		return null
 	}
 
+	function getEndpoint(){
+		return {
+			port: web.config.endpoint.split(':').pop(),
+			host: web.config.endpoint.split(':').shift()
+		}
+	}
 	bus.iHandle('SendNewChatMessage', {
-		handle: function(command){
-			command.header.endpoint = {
-				port: web.config.endpoint.split(':').pop(),
-				host: web.config.endpoint.split(':').shift()
-			}
-			Persistence.member.findOne({username: command.body.from.username}, async function(err, doc){
-				if(err){
-					console.log(err)
-				}
-				if(doc){
-					command.body.from.avatar = doc.avatar
-					command.body.from.username = doc.username
-					command.body.from.name = doc.name
-				}
-				hooks.forEach(function(hook){
-					hook.execute(m)
-				})
-
-				io.to(command.body.room).emit('message', command.body)
-				if(command.body.text?.indexOf('allthethings') > -1){
-					for await(let entry of Persistence.allTheThings()){
-						var message = new SocketMessage({
-							text: JSON.stringify(entry, null, 2),
-							from: command.body.from,
-							room: command.body.room,
-						}, Date.now())
-						io.to(command.body.room).emit('message', message)
-					}
-				}
-				let event = new Events.NewChatMessageWasSent(command.body)
-				event.header.endpoint = command.header.endpoint
-				bus.publish(event)
+		async handle(command){
+			command.header.endpoint = getEndpoint()
+			hooks.forEach(hook => {
+				hook.execute(command.body)
 			})
-	    }
+
+			io.to(command.body.room).emit('message', command.body)
+
+			// Just for dev, to see what's in the db.
+			if(command.body.text?.indexOf('allthethings') > -1){
+				for await(let entry of Persistence.allTheThings()){
+					var message = new SocketMessage({
+						text: JSON.stringify(entry, null, 2),
+						from: command.body.from,
+						room: command.body.room,
+					}, Date.now())
+					io.to(command.body.room).emit('message', message)
+				}
+			}
+			let event = new Events.NewChatMessageWasSent(command.body)
+			event.header.endpoint = command.header.endpoint
+			bus.publish(event)
+		}
 	})
 	bus.iHandle('SendNicknames', {
-		handle: function handle(command){
+		async handle(command){
 			io.sockets.to(command.body.room).emit('nicknames', command.body.nicknames)
 		}
 	})
 
 	bus.iSubscribeTo('NewChatMessageWasSent', null, {
-		update: function update(event){
-			Persistence.message.save(event.body, function(err, doc){
+		async update(event){
+			await Persistence.message.save(event.body, (err, doc)=>{
 				if(err){
 					console.log('error occurred persisting message', err, doc)
 				}
@@ -113,7 +108,7 @@ export default (web) => {
 	})
 
 	bus.iSubscribeTo('UserHasLeft', null, {
-		update: function update(event){
+		async update(event){
 			delete roster[event.body.room][event.body.id]
 			io.sockets.to(event.body.room).emit('left', event.body)
 		}
@@ -160,11 +155,11 @@ export default (web) => {
 		this.socket.on('join', this.onJoin.bind(this))
 	}
 	Client.prototype = {
-		onError: function onError(err){
+		onError(err){
 			console.log(err)
 		},
-		onMessage: function onMessage(text){
-			var message = new SocketMessage({
+		onMessage(text){
+			const message = new SocketMessage({
 				text: text,
 				from: this.roster[this.socket.id] || Member.unknown,
 				room: this.room,
@@ -172,9 +167,11 @@ export default (web) => {
 				socketId: this.socket.id,
 				id: uuid()
 			}, Date.now())
-			this.delegate.send(new Commands.SendNewChatMessage(message))
+			const command = new Commands.SendNewChatMessage(message)
+			command.header.endpoint = getEndpoint()
+			this.delegate.send(command)
 		},
-		onSendPreviousMessages: function onSendPreviousMessages(message, callback){
+		onSendPreviousMessages(message, callback){
 			Persistence.message.findPrevious24Hours(this.room, function(err, doc){
 				if(err){
 					console.log("error sending today messages", err)
@@ -182,32 +179,42 @@ export default (web) => {
 				return callback(doc)
 			})
 		},
-		onNickname: function onNickname(nick, callback){
+		onNickname(nick, callback){
 			this.socket.to(this.room).emit('joined', this.roster[this.socket.id])
-			this.delegate.send(new Commands.SendNicknames({room: this.room, nicknames: this.roster}))
+			const command = new Commands.SendNicknames({room: this.room, nicknames: this.roster})
+			command.header.endpoint = getEndpoint()
+			this.delegate.send(command)
 			return callback(true)
 		},
-		onJoin: function onJoin(room, callback){
+		onJoin(room, callback){
 			this.room = room
 			callback(true)
 		},
-		onLeft: function onLeft(message){
+		onLeft(message){
 			debug('disconnected', message)
-			this.delegate.publish(new Events.UserHasLeft({room: this.room, member: message.member, id: this.socket.id}))
+			const event = new Events.UserHasLeft({room: this.room, member: message.member, id: this.socket.id})
+			event.header.endpoint = getEndpoint()
+			this.delegate.publish(event)
 		},
-		onDisconnect: function onDisconnect(){
+		onDisconnect(){
 			debug('disconnecting', arguments)
-			this.delegate.publish(new Events.UserHasLeft({room: this.room, member: this.roster[this.socket.id], id: this.socket.id}))
-			this.delegate.send(new Commands.SendNicknames({room: this.room, nicknames: this.roster}))
+			const event = new Events.UserHasLeft({room: this.room, member: this.roster[this.socket.id], id: this.socket.id})
+			event.header.endpoint = getEndpoint()
+			this.delegate.publish(event)
+			const command = new Commands.SendNicknames({room: this.room, nicknames: this.roster})
+			command.header.endpoint = getEndpoint()
+			this.delegate.send(command)
 		},
-		connect: function connect(message){
+		connect(message){
 			if(message){
 				this.socket.emit('message', message)
 			}
 			this.socket.emit('connected', this.roster)
-			this.delegate.publish(new Events.UserHasConnected({room: this.room, member: this.roster[this.socket.id]}))
+			const event = new Events.UserHasConnected({room: this.room, member: this.roster[this.socket.id]})
+			event.header.endpoint = getEndpoint()
+			this.delegate.publish(event)
 		},
-		join: function join(room){
+		join(room){
 			this.socket.join(room)
 		}
 	}

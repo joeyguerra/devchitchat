@@ -1,25 +1,28 @@
-import Queue from '../lib/queue'
-import PersistentQueue from '../lib/persistentQueue'
-import path from 'path'
-import fs from 'fs'
+import Queue from '../lib/queue.mjs'
+import PersistentQueue from '../lib/persistentQueue.mjs'
+import path from 'node:path'
+import fs from 'node:fs'
 import {v4 as uuid} from 'uuid'
 import debug from 'debug'
 
 debug('inprocbus')
 
-var queuePath = __dirname + path.sep + 'queues' + path.sep + 'outgoing' + path.sep
-var commands = new PersistentQueue(queuePath, new Queue({name: 'Commands'}))
-var events = new PersistentQueue(queuePath, new Queue({name: 'Events'}))
-var handlers = {}
-var subscribers = {}
+import { fileURLToPath } from 'node:url'
+const __dirname = fileURLToPath(import.meta.url)
+const queuePath = `${__dirname}${path.sep}queues${path.sep}outgoing${path.sep}`
+console.log('queuePath', queuePath)
+const commands = new PersistentQueue(queuePath, new Queue({name: 'Commands'}))
+const events = new PersistentQueue(queuePath, new Queue({name: 'Events'}))
+const handlers = {}
+const subscribers = {}
 
 function loadFromDisk(){
-	var files = fs.readdirSync(queuePath)
-	files.forEach(function(directory){
-		fs.readdirSync(queuePath + directory + path.sep).forEach(function(file){
-			var text = fs.readFileSync(queuePath + directory + path.sep + file, {encoding: "utf-8"})
+	const files = fs.readdirSync(queuePath)
+	files.forEach(directory => {
+		fs.readdirSync(queuePath + directory + path.sep).forEach(file => {
+			const text = fs.readFileSync(queuePath + directory + path.sep + file, {encoding: "utf-8"})
 			try{
-				var obj = JSON.parse(text)
+				const obj = JSON.parse(text)
 				if(obj.type === 'command'){
 					commands.enqueue(obj)
 				}else if(obj.type === 'events'){
@@ -32,20 +35,20 @@ function loadFromDisk(){
 }
 
 function sendEvents(){
-	var event = events.dequeue()
+	const event = events.dequeue()
 	if(!event){
 		return
 	}
 	if(!subscribers[event.header.name]){
 		return
 	}
-	for(var i = 0; i < subscribers[event.header.name].length; i++){
+	for(let i = 0; i < subscribers[event.header.name].length; i++){
 		subscribers[event.header.name][i].update(event)
 	}
 }
 
 function sendCommands(){
-	var command = commands.dequeue()
+	const command = commands.dequeue()
 	if(!command){
 		return
 	}
@@ -57,21 +60,21 @@ function sendCommands(){
 process.on('inprocbus.hasStarted', loadFromDisk)
 
 export default {
-	send: function(command){
+	send(command){
 		command.header.uuid = uuid()
 		commands.enqueue(command)
 	},
-	publish: function(event){
+	publish(event){
 		event.header.uuid = uuid()
 		events.enqueue(event)
 	},
-	iHandle: function(name, handler){
+	iHandle(name, handler){
 		if(handlers[name]){
 			throw new Error(name + ' is already handled')
 		}
 		handlers[name] = handler
 	},
-	iSubscribeTo: function(name, publisher, subscriber){
+	iSubscribeTo(name, publisher, subscriber){
 		if(!subscribers[name]){
 			subscribers[name] = []
 		}
@@ -79,12 +82,12 @@ export default {
 	},
 	commandInterval: null,
 	eventInterval: null,
-	start: function(){
+	start(){
 		process.emit('inprocbus.hasStarted', this)
 		this.commandInterval = setInterval(sendCommands, 500)
 		this.eventInterval = setInterval(sendEvents, 500)
 	},
-	stop: function(){
+	stop(){
 		clearInterval(this.commandInterval)
 		clearInterval(this.eventInterval)
 		process.emit('inprocbus.hasStopped', this)

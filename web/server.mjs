@@ -1,6 +1,6 @@
 import express from 'express'
 import path, {dirname} from 'node:path'
-import fs from 'node:fs'
+import fs, { stat } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {Chilla} from 'chilla'
 import compression from 'compression'
@@ -11,13 +11,18 @@ import cookieSession from 'cookie-session'
 import passport from 'passport'
 import GithubAuth from '../lib/GithubAuth.mjs'
 import jws from 'jws'
-import Member from '../app/entities/member.mjs'
+import Member from '../app/entities/Member.mjs'
 import bus from '../boundaries/bus.mjs'
 import Commands from '../app/commands/index.mjs'
 import Events from '../app/events/index.mjs'
 import debug from'debug'
 import Db from '../lib/db.mjs'
 import TwitterAuth from '../lib/TwitterAuth.mjs'
+import bodyParser from 'body-parser'
+import handlebars from 'handlebars'
+
+const File = fs.promises
+
 const config = Object.assign({
 	site: {
 		title: 'devchitchat'
@@ -27,18 +32,20 @@ const config = Object.assign({
 
 debug('httpServer')
 
-multer({dest: './uploads/'})
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const app = express()
-const rootPath = __dirname.replace('web' + path.sep, '')
+const rootPath = __dirname
 const chilla = Chilla({
 	themeRoot: rootPath + ['', 'themes', 'default'].join(path.sep),
 	appPath: rootPath
 });
-const uploadsFolder = rootPath + '/uploads/'
-const imagesFolder = rootPath + '/uploads/images/'
+const UPLAODS_FOLDER = `${rootPath}/uploads/`
+const IMAGES_FOLDER = `${rootPath}/uploads/images/`
 const members = []
 const db = new Db(config.DATA_PATH)
+
+multer({dest: UPLAODS_FOLDER})
+
 function Resource(obj){
 	this.layout = 'default'
 	this.title = "devchitchat"
@@ -118,8 +125,8 @@ bus.iHandle('ChangeBackground', {
 	}
 })
 createFolderIfDoesntExist(config.DATA_PATH)
-createFolderIfDoesntExist(uploadsFolder)
-createFolderIfDoesntExist(imagesFolder)
+createFolderIfDoesntExist(UPLAODS_FOLDER)
+createFolderIfDoesntExist(IMAGES_FOLDER)
 express.response.represent = function(result){
 	if(result === undefined) return this.req.next(result)
 	if(!result.view){
@@ -147,20 +154,119 @@ express.response.represent = function(result){
 	}.bind(this))
 }
 
+async function readFiles(folders, source, delegate) {
+    for await (let file of folders) {
+        let fileName = `${source}/${file.name}`
+        if (file.isFile()){
+            if(delegate.filterOut && await delegate.filterOut(file, fileName)) continue
+            if(delegate.fileWasFound) await delegate.fileWasFound({ file, fileName })
+        }else{
+            if(delegate.directoryWasFound) await delegate.directoryWasFound({ file, fileName })
+        }
+    }
+}
+
+;(async ()=>{
+	const files = []
+	const source = './templates'
+	const destination = './dist'
+	const folders = await File.readdir(source, {withFileTypes: true})
+    await readFiles(folders, source, {
+        async directoryWasFound(info){
+            try{await File.mkdir(info.fileName.replace(source, destination))}catch(e){}
+            await readFiles(await File.readdir(info.fileName, {withFileTypes: true}), info.fileName, this)
+        },
+        async fileWasFound(info){
+            // only if you want to create static files
+			// if(info.fileName.indexOf('Layout') == -1) fs.createReadStream(info.fileName).pipe(fs.createWriteStream(info.fileName.replace(source, destination)))
+			files.push(info.fileName)
+        }
+    })
+    for await (let file of files){
+        let data = await File.readFile(file, 'utf-8')
+        let key = file.replace(`${source}/`, '').replace(/[\s|\-]/g, '_')
+        if(key.indexOf('.html') > -1) {
+			console.log(`Registering ${key}`)
+            handlebars.registerPartial(key, data)
+        }
+    }
+})()
+
+handlebars.registerHelper('w3cFormat', (value, options) => {
+	return (new Date(value)).toISOString()
+})
+handlebars.registerHelper('ifThisIsTheFirstMessageInTheGroup', (message, index, messages, loggedInMember, options)=>{
+
+	let html = null
+	// if(message.from.username != loggedInMember.username){
+	// 	options.data.root.counter = 0
+	// }
+	console.log(options.data.root.counter, message.from.username == loggedInMember.username, message.from.username, loggedInMember.username, messages[index + 1]?.from.username)
+	if(options.data.root.counter == 0 &&
+		message.from.username == loggedInMember.username){
+		options.data.root.counter = 1
+		return options.fn(message)
+	}
+
+	if(options.data.root.counter == 0 &&
+		message.from.username != loggedInMember.username &&
+		message.from.username == messages[index + 1]?.from.username){
+		options.data.root.counter = 1
+		return options.fn(message)
+	}
+
+	return html
+})
+handlebars.registerHelper('ifLastMessageInGroup', (message, index, messages, loggedInMember, options)=>{
+	if(message.from.username == loggedInMember.username && messages[index + 1]?.from.username != loggedInMember.username){
+		options.data.root.counter = 0
+		return options.fn(message)
+	}
+	if(message.from.username != loggedInMember.username && messages[index + 1]?.from.username == loggedInMember.username){
+		options.data.root.counter = 0
+		return options.fn(message)
+	}
+	return null
+})
+
+handlebars.registerHelper('selfOrOther', (member, user, state, options) => {
+	if(!state.current) state.current = 0
+	let className = ''
+	if(member.username == user.username){
+		className = 'self'
+		state.current = 0
+	} else {
+		className = 'other'
+		state.current = 1
+	}
+	return className
+})
+
+app.disable('x-powered-by')
+express.static.mime.define({'text/javascript': ['js', 'mjs']})
+app.use(express.static('./dist'))
 app.use(compression())
 app.use("/public", express.static(chilla.themeRoot))
-app.use("/uploads", express.static(rootPath + '/uploads/'))
-app.set("views", rootPath + "/themes/default/templates")
-app.set("view engine", (view, options, fn)=> fn(view, options))
-app.use(express.urlencoded({ extended: true }))
+console.log(rootPath)
+app.use("/uploads", express.static(UPLAODS_FOLDER))
+app.use('/lib', express.static(`${__dirname.replace('/web', '')}/lib`))
+app.engine('html', async (filePath, options, callback)=>{
+	const data = await File.readFile(filePath, 'utf-8')
+	const template = handlebars.compile(data)
+	const rendered = template(options)
+	callback(null, rendered)
+})
+app.set('view engine', 'html')
+app.set('views', ['./www', './templates'])
+app.use(bodyParser.urlencoded({ extended: true }))
+app.use(bodyParser.json())
 app.use(cookieParser({
 	secret: config.COOKIE_SECRET
 }))
 app.use(cookieSession({ keys: [config.COOKIE_KEY, ':blarbityblarbblarb:'], secret: config.COOKIE_SECRET}))
-app.use(methodOverride((req, res)=>{
-	if(req.body._method) return req.body._method
-	return req.method
-}))
+app.use(methodOverride('_method'))
+app.set('trust proxy', 1)
+
 const regenerate = callback => {
 	console.log('regenerating')
 	callback()
@@ -210,7 +316,7 @@ passport.use(new GithubAuth({
 			return done(null, member)
 		}
 		member = new Member({
-			id: profile.id,
+			id: `github:${profile.id}`,
 			provider: profile.provider,
 			name: profile.displayName,
 			token: profile.nodeId,
@@ -243,7 +349,7 @@ passport.use(new TwitterAuth({
 			return done(null, member);
 		}
 		member = new Member({
-			id: profile.id,
+			id: `twitter:${profile.id}`,
 			provider: profile.provider,
 			name: profile.displayName,
 			token: profile.id,
@@ -289,11 +395,18 @@ app.get('/login/github.:format?', passport.authenticate('github'))
 app.get('/login/twitter.:format?', passport.authenticate('twitter'))
 app.get('/github/callback', passport.authenticate('github', {successRedirect: '/welcome', failureRedirect: '/'}))
 app.get('/twitter/callback', passport.authenticate('twitter', {successRedirect: '/welcome', failureRedirect: '/'}))
+app.locals.title = 'welcome room'
+app.locals.description = 'the welcome chat room'
+app.locals.author = 'joey g'
 
-app.get('/welcome.:format?', (req, resp, next)=>{
-	resp.represent({
-		view: 'chat/room',
-		resource: new Resource({title: "Welcome", js:[
+app.get('/welcome.:format?', async (req, res)=>{
+	const messages = await db.message.findToday('w2')
+	res.render('chat/room.html', {
+		member: JSON.stringify(req.user, null, 2),
+		user: req.user,
+		messages: messages,
+		counter: 0,
+		js:[
 			'/socket.io/socket.io.js',
 			'/public/js/hogan-2.0.0.min.js',
 			'/public/js/mvc.js',
@@ -301,21 +414,19 @@ app.get('/welcome.:format?', (req, resp, next)=>{
 			'/public/js/previewview.js',
 			'/public/js/rosterview.js',
 			'/public/js/reconnectingcounterview.js',
-			'/public/js/discussionview.js',
-			'/public/js/chat.js',
 			'/public/js/menu.js'
-		], css: ['chatbubbles', 'room']}),
-		model: []})
+		], css: ['/public/css/chatbubbles.css', '/public/css/room.css']
+	})
 })
 
-app.get(['/', '/index.:format?'], (req, resp, next)=>{
-	resp.represent({
+app.get(['/', '/index.:format?'], (req, res)=>{
+	res.represent({
 		view: 'index/index',
 		resource: new Resource({title: "devchitchat", css: ['index']}),
 		model: {}})
 })
 
-app.delete("/members.:format?", (req, resp, next)=>{
+app.delete("/members.:format?", (req, res)=>{
 	var id = req.body.id
 	db.member.findOne({id: id}, (err, member)=>{
 		if(err){
@@ -325,44 +436,44 @@ app.delete("/members.:format?", (req, resp, next)=>{
 			bus.send(new Commands.DeleteMember(member))
 		}
 	})
-	resp.redirect('/members')
+	res.redirect('/members')
 })
-app.get("/members.:format?", (req, resp, next)=>{
+app.get("/members.:format?", (req, res)=>{
 	var docs = []
 	db.member.find({}, {public: -1}, (err, docs)=>{
 		if(err){
 			debug(err)
 			next(500)
 		}
-		resp.represent({view: 'members/index'
+		res.represent({view: 'members/index'
 			, resource: new Resource({title: "List of Members"
 			, members: members, css: ['members']})
 			, model: docs})
 	})
 })
 
-app.get('/members/:id.:format?', (req, resp, next)=>{
+app.get('/members/:id.:format?', (req, res)=>{
 	db.member.findOne({id: req.params.id}, (err, doc)=>{
 		if(err) return next(500)
 		if(doc === null) return next(404)
-		resp.represent({view: 'member/show'
+		res.represent({view: 'member/show'
 			, resource: new Resource({members: members, css: ['member'], js: ['member']})
 			, model: doc})
 	})
 })
 
-app.get("/member/:id.:format?", (req, resp, next)=>{
+app.get("/member/:id.:format?", (req, res)=>{
 	db.member.findOne({id: req.params.id}, function(err, doc){
 		if(err) return next(500)
 		if(doc === null) return next(404)
-		resp.represent({view: 'member/edit'
+		res.represent({view: 'member/edit'
 			, resource: new Resource({members: members, css: ['member'], js: ['member']})
 			, model: doc})
 	})
 })
 
-app.get("/member.:format?", (req, resp, next)=>{
-	resp.represent({view: 'members/edit'
+app.get("/member.:format?", (req, res)=>{
+	res.represent({view: 'members/edit'
 		, resource: new Resource({title: "New Member", members: members
 			, css: ['member']
 			, js: ['member']
@@ -371,13 +482,13 @@ app.get("/member.:format?", (req, resp, next)=>{
 	})
 })
 
-app.put("/member/:id.:format?", (req, resp, next)=>{
+app.put("/member/:id.:format?", (req, res)=>{
 	db.member.findOne({id: req.params.id}, (err, doc)=>{
 		if(!doc) return next(404)
 		doc.page = req.body.page
 		doc.name = req.body.name
 		bus.send(new Commands.UpdateMember(doc))
-		resp.redirect('/members')
+		res.redirect('/members')
 	})
 })
 
@@ -390,7 +501,7 @@ app.post("/member.:format?", (req, resp, next)=>{
 	resp.redirect('/members')
 })
 
-app.post('/member/:id/backgrounds.:format?', (req, resp, next)=>{
+app.post('/member/:id/backgrounds.:format?', (req, res)=>{
 	var file = req.files['newBackground']
 	var folder = rootPath + '/uploads/' + req.user.username
 	var id = req.params.id
@@ -405,13 +516,13 @@ app.post('/member/:id/backgrounds.:format?', (req, resp, next)=>{
 				bus.send(new Commands.ChangeBackground({id: req.user.id, background: newBackground}))
 				db.member.findOne({id: id}, (err, doc)=>{
 					doc.background = newBackground
-					resp.represent({view: 'member/show', resource: new Resource(), model: new Member(doc)})
+					res.represent({view: 'member/show', resource: new Resource(), model: new Member(doc)})
 				})
 		})
 	})
 })
 
-app.post('/member/:id/avatars.:format?', (req, resp, next)=>{
+app.post('/member/:id/avatars.:format?', (req, res)=>{
 	const file = req.files['newAvatar']
 	const folder = rootPath + '/uploads/' + req.user.username
 	const id = req.params.id
@@ -426,16 +537,16 @@ app.post('/member/:id/avatars.:format?', (req, resp, next)=>{
 				bus.send(new Commands.ChangeAvatar({id: req.user.id, avatar: newAvatar}))
 				db.member.findOne({id: id}, (err, doc)=>{
 					doc.avatar = newAvatar
-					resp.represent({view: 'member/show', resource: new Resource(), model: new Member(doc)})
+					res.represent({view: 'member/show', resource: new Resource(), model: new Member(doc)})
 				})
 		})
 	})
 })
 
-app.get("/chat/:room.:format?", (req, resp, next)=>{
+app.get("/chat/:room.:format?", (req, res)=>{
 	const room = req.params.room
 	db.message.findToday(room, (err, doc)=>{
-		resp.represent({
+		res.represent({
 			view: 'chat/room',
 			resource: new Resource({title: "Welcome", js:[
 				'/socket.io/socket.io.js',

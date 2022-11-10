@@ -4,23 +4,19 @@
 			container: container
 			, model: model
 			, delegate: delegate
-			, joined: function(member){
-				if(!this.model.find(function(m){
-					return m.username === member.username;
-				}.bind(this))){
-					this.model.push(member);
+			, joined(member){
+				if(!this.model.find((i, m) => m.username == member.username)){
+					this.model.push(member)
 				}
 			}
-			, left: function(member){
-				this.model.remove(function(i, m){
-					return m.username === member.username;
-				});
+			, left(member){
+				this.model.remove((i, m) => m.username == member.username)
 			}
-			, connected: function(nicknames){
+			, connected(nicknames){
 				for(var name in nicknames){
-					if(!this.model.find(function(m){return m.username === name;})){
-						this.model.push(nicknames[name]);
-					}
+					let member = nicknames[name]
+					if(this.model.find((i, m)=> m.username == member.username)) continue
+					this.model.push(member)
 				}
 			}
 		};
@@ -31,15 +27,15 @@
 		template.style.display = 'none';
 		function userJoined(key, old, v){
 			if(document.getElementById(v.username)){
-				return;
+				return
 			}
-			var elem = template.cloneNode(true);
-			elem.style.display = 'block';
-			elem.id = v.username;
-			elem.innerHTML = joinedTemplate.render(v);
-			parent.insertBefore(elem, template);
-			var avatar = elem.querySelector('img');
-			avatar.src = avatar.getAttribute('data-src');
+			var elem = template.cloneNode(true)
+			elem.style.display = 'block'
+			elem.id = v.username
+			elem.innerHTML = joinedTemplate.render(v)
+			elem.querySelector('img').src = v.avatar
+			elem.querySelector('figcaption').innerHTML = v.displayName
+			parent.insertBefore(elem, template)
 		}
 		function userLeft(key, old, v){
 			var remove = parent.querySelector('#' + old.username);

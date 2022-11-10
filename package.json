@@ -7,7 +7,8 @@
     "stop": "node web/devchitchat stop",
     "dev": "env -S \"`cat .env | grep --invert-match \"#\" | xargs -0`\" node --watch ./web/devchitchat.mjs",
     "start:local": "env -S \"$(cat .env | grep --invert-match \"#\" | xargs -0)\" node --watch ./web/devchitchat.mjs",
-    "test": "./node_modules/tap/bin/tap.js ./tests --stderr --tap"
+    "test": "node --test ./examples",
+    "test:local": "node --watch"
   },
   "repository": "https://github.com/ijoey/devchitchat.git",
   "dependencies": {
@@ -20,6 +21,7 @@
     "debug": "^4.3.4",
     "ejs": "^3.1.8",
     "express": "^4.18.2",
+    "handlebars": "^4.7.7",
     "jws": "^4.0.0",
     "method-override": "^3.0.0",
     "mime": "^3.0.0",
