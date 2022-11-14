@@ -1,3 +1,4 @@
+
 .header .home{
 	width: 57px;
 	height: 57px;
@@ -32,18 +33,12 @@
 	margin-bottom: 1em;
 }
 .hero a{
-	color: #fefefe;
 	padding-right: 6px;
 }
 .hero h1, .identify h2{
 	font-family: 'Pacifico', cursive;
 }
-.hero, .identify{
-	color: rgb(255,255,255);
-}
-.identify .buttons button{
-	color: rgb(0,0,0);
-}
+
 .hero, .hero h1{
 	text-align: center;
 	width: 100%;

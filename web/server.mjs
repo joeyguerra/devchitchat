@@ -268,11 +268,9 @@ app.use(methodOverride('_method'))
 app.set('trust proxy', 1)
 
 const regenerate = callback => {
-	console.log('regenerating')
 	callback()
 }
 const save = callback => {
-	console.log('saving')
 	callback()
 }
 app.use((req, res, next)=>{
@@ -395,13 +393,14 @@ app.get('/login/github.:format?', passport.authenticate('github'))
 app.get('/login/twitter.:format?', passport.authenticate('twitter'))
 app.get('/github/callback', passport.authenticate('github', {successRedirect: '/welcome', failureRedirect: '/'}))
 app.get('/twitter/callback', passport.authenticate('twitter', {successRedirect: '/welcome', failureRedirect: '/'}))
-app.locals.title = 'welcome room'
-app.locals.description = 'the welcome chat room'
+app.locals.title = 'DevChitChat'
+app.locals.description = 'Every day around 10 AM'
 app.locals.author = 'joey g'
 
 app.get('/welcome.:format?', async (req, res)=>{
 	const messages = await db.message.findToday('w2')
 	res.render('chat/room.html', {
+		title: `the welcoming room`,
 		member: JSON.stringify(req.user, null, 2),
 		user: req.user,
 		messages: messages,
@@ -409,21 +408,14 @@ app.get('/welcome.:format?', async (req, res)=>{
 		js:[
 			'/socket.io/socket.io.js',
 			'/public/js/hogan-2.0.0.min.js',
-			'/public/js/mvc.js',
-			'/public/js/messageview.js',
-			'/public/js/previewview.js',
-			'/public/js/rosterview.js',
-			'/public/js/reconnectingcounterview.js',
-			'/public/js/menu.js'
 		], css: ['/public/css/chatbubbles.css', '/public/css/room.css']
 	})
 })
 
 app.get(['/', '/index.:format?'], (req, res)=>{
-	res.represent({
-		view: 'index/index',
-		resource: new Resource({title: "devchitchat", css: ['index']}),
-		model: {}})
+	res.render('index/index.html', {
+		css: ['/public/css/index.css']
+	})
 })
 
 app.delete("/members.:format?", (req, res)=>{

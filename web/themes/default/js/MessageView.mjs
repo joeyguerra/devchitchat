@@ -14,7 +14,7 @@ export default class MessageView {
         }
         this.interval = null
         this.field = this.container.querySelector("[name='message']")
-        this.form = this.container.querySelector('form')
+        this.form = this.container
         this.offset = {top: this.container.offsetTop}
 
         this.delegate.win.addEventListener('scroll', this.scrolling.bind(this), true)

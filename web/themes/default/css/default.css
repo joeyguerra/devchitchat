@@ -1,14 +1,11 @@
-@import url("//fonts.googleapis.com/css?family=Pacifico");
-@import url("//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css");
-html,body{
+@import "//fonts.googleapis.com/css?family=Pacifico";
+@import "//unpkg.com/open-props";
+@import '//unpkg.com/open-props/normalize.min.css'; 
 
-}
 html {
-	-webkit-text-size-adjust: 100%;
 	font-size: 100%;
 }
 body {
-	color: black;
 	line-height: 1.7857;
 	font-weight: normal;
 	font-style: normal;
@@ -45,50 +42,20 @@ h1,h2,h3,h4,h5,h6
 }
 :focus {outline:none;}
 ::-moz-focus-inner {border:0;}
-#main{
-	padding-right: 0;
-	padding-left: 0;
-	margin-right: 0;
-	margin-left: 0;
-}
-aside.nav{
-	width: 100px;
-}
-aside.nav nav{
-	width: 20%;
-	height: 100%;
-	position: fixed;
-	z-index: 1;
-	top: 0;
-	background: rgba(255,255,255,.1);
-}
+
 aside.nav nav a{
 	display: block;
-	font-size: 55px;
 	width: 100%;
-	height: 75px;
 	text-align: center;
-	line-height: 75px;
-	position: fixed;
-	top: 89%;
-	left: -40%;
 }
 aside.nav nav a:hover{
 	text-decoration: none;
-}
-aside.nav nav a span{
-	display: none;
 }
 
 .glyphicon-power:before {
   content: "\e017";
 }
-.on{
-	color: white;
-}
-.off{
-	color: gray;
-}
+
 .member{
 	width: 10vw;
 	float: left;
@@ -97,9 +64,7 @@ aside.nav nav a span{
 .member h2{
 	text-align: center;
 }
-body{
-	background: black;
-}
+
 form .file{
 	height: 100px;
 }
@@ -108,66 +73,22 @@ form .file{
 	right: 75px;
 	top: 0;
 }
-.nav{
-	height: 100%;
-	width: 75px;
-}
-.nav img{
-	width: 75px;
-}
-.roster{
-	color: white;
-}
-#messagesView{
-	box-shadow: 0 0 46px 0 rgba(0,0,0,2.5);
-}
-#header a {
-	color: #fefefe;
-	padding-right: 6px;
-}
-#header{
-	margin-left: 20%;
-}
-.container{
-	padding:0;
-	width: 80%;
-	margin-right: 0;
-}
 
-@media (max-width: 768px){
-	#comment {
-		width: 100%;
-	}
-	#header{
-		display: none;
-	}
-
-	aside.nav nav{
-		width: 0;
-		margin-left: -20%;
-	}
-	.container{
-		width: 100%;
-	}
-}
 #comment{
 	position: fixed;
 	z-index: 5;
-	background:#333;
 }
 #comment form{
 	padding: 0;
 	margin: 0;
 }
 #comment input{
-	background: rgba(255,255,255,.1);
 	font-size: 1.5em;
 	height: 2em;
 	width: 100%;
 	border: 2px;
 	padding: 0 0 0 25px;
 	margin: 0;
-	color: white;
 	font-weight: normal;
 }
 

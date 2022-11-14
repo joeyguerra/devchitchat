@@ -44,6 +44,7 @@
 }
 .discussion .avatar
 , .roster .avatar{
+	width: 45px;
 	position: absolute;
 	top: 0;
 	z-index: 2;
@@ -56,12 +57,10 @@
 , .roster .avatar figcaption{
 	display: block;
 	text-align: center;
-	width: 100%;
 }
 .discussion .avatar img
 , .roster .avatar img{
-	width: 4em;
-	height: 4em;
+	border-radius: var(--radius-round);
 }
 .roster ul{
 	padding:0;
@@ -70,6 +69,7 @@
 .roster li{
 	position: relative;
 }
+
 .discussion .self .avatar{
 	right: 0;
 }
@@ -85,7 +85,6 @@
 	text-align: left;
 	background: rgb(5, 160, 255);
 	border-radius: 20px;
-	color: white;
 	line-height: 1em;
 	position: relative;
 	z-index:1;
@@ -96,12 +95,7 @@
 	min-height: 20px;
 	cursor: pointer;
 }
-.discussion .text a{
-	color: black;
-}
-.discussion .self .text a{
-	color: white;
-}
+
 .discussion .self .message:nth-child(2):before{
 	content:"";
 	position:absolute;
@@ -111,8 +105,10 @@
 	height:20px;
 	border-left:20px solid #E5E5EA;
 	border-bottom-left-radius: 16px 14px;
-	-webkit-transform:translate(0, -2px);
+	transform:translate(0, -2px);
 }
+
+/* Style the "flip" */
 .discussion .self .message:nth-child(2):after{
 	content:"";
 	position:absolute;
@@ -121,9 +117,9 @@
 	right:-56px;
 	width:26px;
 	height:20px;
-	background:black;
+	background: var(--surface-1);
 	border-bottom-left-radius: 10px;
-	-webkit-transform:translate(-30px, -2px);
+	transform:translate(-30px, -2px);
 	clear: both;
 }
 .discussion .self.preview .message,
@@ -135,7 +131,6 @@
 }
 .discussion .self.preview small{
 	margin-right: 60px;
-	color: grey;
 }
 .discussion .other .message{
 	position:relative;
@@ -153,7 +148,7 @@
 	height:20px;
 	border-left:20px solid #0B93F6;
 	border-bottom-right-radius: 16px 14px;
-	-webkit-transform:translate(0, -2px);
+	transform:translate(0, -2px);
 }
 .discussion .other .message:nth-child(2):after{
 	content:"";
@@ -163,15 +158,19 @@
 	left:4px;
 	width:26px;
 	height:20px;
-	background:black;
+	background: var(--surface-1);
 	border-bottom-right-radius: 10px;
-	-webkit-transform:translate(-30px, -2px);
+	transform:translate(-30px, -2px);
 }
 
 .discussion .self .message{
 	margin-right: 65px;
 	margin-left: 0;
 }
+.comment {
+	width: 100%;
+}
+
 .comment button{
 	display: none;
 }

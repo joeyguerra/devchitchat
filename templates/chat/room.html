@@ -1,43 +1,10 @@
-{{#>layouts/default.html}}
-<style>
-	time {
-		color: white;
-	}
-	.discussion .avatar {
-		width: 56px;
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-	}
-	.discussion .avatar figcaption {
-		font-size: .7em;
-		color: white;
-	}
-</style>
-<script>
-	var member = {{{ member }}}
-</script>
-
-<header id="header" role="header" class="hero">
-	<a href="https://github.com/joeyguerra/devchitchat/issues" title="devchitchat issues" class="fa" target="_blank">Issues</a>
-	<a href="https://github.com/joeyguerra/devchitchat" title="devchitchat repo" class="fa fa-github" target="_blank">Code</a>
-	<a href="/" title="devchitchat index">{{ title }}</a>
-	<a href="/welcome">Welcome</a>
-</header>
-<form method="get" action="/logout" style="display: none;">
-	<fieldset>
-		<button type="submit">Sign out</button>
-	</fieldset>
-</form>
-
-<div class="container">
-	<div id="messagesView" class="centered content view">
-		<div id="comment" class="comment container">
-			<form>
-				<input type="text" name="message" />
-				<button type="submit">Send</button>
-			</form>
-		</div>
+{{#>layouts/room.html}}
+<section class="middle">	
+	<div id="messagesView">
+		<form id="comment" class="comment">
+			<input type="text" name="message" />
+			<button type="submit">Send</button>
+		</form>
 		<ol class="discussion">
 			<li class="other" style="display: none">
 				<figure class="avatar">
@@ -71,39 +38,23 @@
 			{{/each}}
 		</ol>
 	</div>
-</div>
+</section>
 <aside class="nav">
 	<nav id="menu">
-		<div id="rosterView" class="roster" style="display: none;">
-			<ul>
-				<li>
-					<figure class="avatar">
-						<img class="img-circle" />
-						<figcaption></figcaption>
-					</figure>
-				</li>
-			</ul>
-		</div>
+		<ul id="rosterView" class="roster" style="display: none;">
+			<li>
+				<figure class="avatar">
+					<img class="img-circle" />
+					<figcaption></figcaption>
+				</figure>
+			</li>
+		</ul>
 		{{#if user}}
-		<a class="glyphicon glyphicon-power on" href="/logout" title="Logout of this site"><span>Logout</span></a>
+		<a class="on" href="/logout" title="Signout of the site"><span>Signout</span></a>
 		{{else}}
-		<a class="glyphicon glyphicon-power off" href="/login" name="signin"><span>Sign in</span></a>
+		<a class="off" href="/login" name="signin" title="Signinto the site"><span>Signin</span></a>
 		{{/if}}
 	</nav>
 </aside>
-<script type="module">
-	import Chat from './public/js/Chat.mjs'
-	import {ObservableArray, makeKeyValueObservable} from './lib/Observable.mjs'
-	import {Message} from './lib/Models.mjs'
-	const socket = io.connect('', {query: 'username=' + window.member.username})
-	const model = {
-		messages: new ObservableArray(),
-		roster: new ObservableArray(),
-		message: makeKeyValueObservable(new Message())
-	}
-
-	const app = new Chat(model, socket, window)
-	app.start()
-	app.requestNotificationPermission()
-</script>
-{{/layouts/default.html}}
+<footer>Footer</footer>
+{{/layouts/room.html}}

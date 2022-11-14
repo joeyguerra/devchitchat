@@ -1,11 +1,12 @@
-<article>
+{{#>layouts/default.html}}
+<section>
 	<header role="header" class="hero">
 		<a href="https://github.com/ijoey/devchitchat/issues" title="devchitchat issues" class="fa" target="_blank">Issues</a>
 		<a href="https://github.com/ijoey/devchitchat" title="devchitchat repo" class="fa fa-github" target="_blank">Code</a>
-		<a href="/" title="devchitchat index"><%= config.site.title %></a>
+		<a href="/" title="devchitchat index">{{ title }}</a>
 		<h1>Hi!</h1>
 	</header>
-	<div class="identify">
+	<section class="identify">
 		<h2>Identify yourself with</h2>
 		<div class="buttons">
 			<form method="get" action="/login/twitter">
@@ -15,8 +16,9 @@
 				<button type="submit" class="fa fa-github btn-lg">Github</button>
 			</form>
 		</div>
-	</div>
+	</section>
 	<footer class="hero">
 		<p>devchitchat - every day around 10 AM.</p>
 	</footer>
-</article>
+</section>
+{{/layouts/default.html}}

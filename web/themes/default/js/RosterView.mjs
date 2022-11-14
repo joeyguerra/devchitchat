@@ -4,8 +4,7 @@ export default class RoasterView {
         this.container = container
         this.model = model
         this.delegate = delegate
-		this.parent = this.container.querySelector('ul')
-		this.template = this.container.querySelector('ul li:first-child')
+		this.template = this.container.querySelector('li:first-child')
 		this.template.style.display = 'none'
 		this.container.style.display = 'block'
 		this.model.observe('push', this.userJoined.bind(this))
@@ -35,11 +34,11 @@ export default class RoasterView {
         elem.id = v.username
         elem.querySelector('img').src = v.avatar
         elem.querySelector('figcaption').innerHTML = v.displayName
-        this.parent.insertBefore(elem, this.template)
+        this.container.insertBefore(elem, this.template)
     }
     userLeft(key, old, v){
-        const remove = this.parent.querySelector(`#${old.username}`)
+        const remove = this.container.querySelector(`#${old.username}`)
         if(!remove) return
-        this.parent.removeChild(remove);
+        this.container.removeChild(remove);
     }
 }

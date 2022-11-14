@@ -20,8 +20,41 @@
 		{{#each css }}
 		<link rel="stylesheet" type="text/css" href="{{ this }}" />
 		{{/each}}
+		<style>
+			
+			main {
+				display: flex;
+				flex-direction: column;
+			}
+			@media all and (min-width: 768px){
+				main {
+					flex-direction: row;
+					flex-wrap: wrap;
+				}
+				header, footer{
+					width: 100%;
+				}
+				.middle {
+					flex: 2;
+					order: 2;
+					min-height: 80vh;
+				}
+				footer {
+					order: 4;
+				}
+			}
+		</style>
+		<script>
+			var member = {{{ member }}}
+		</script>		
 	</head>
 	<body>
+		<header id="header" role="header" class="hero">
+			<a href="https://github.com/joeyguerra/devchitchat/issues" title="devchitchat issues" class="fa" target="_blank">Issues</a>
+			<a href="https://github.com/joeyguerra/devchitchat" title="devchitchat repo" class="fa fa-github" target="_blank">Code</a>
+			<a href="/" title="devchitchat index">{{ title }}</a>
+			<a href="/welcome">Welcome</a>
+		</header>
 		<main role="main">
             {{> @partial-block }}
 		</main>
@@ -29,4 +62,19 @@
 		<script type="text/javascript" src="{{ this }}"></script>
 		{{/each}}
 	</body>
+	<script type="module">
+		import Chat from './public/js/Chat.mjs'
+		import {ObservableArray, makeKeyValueObservable} from './lib/Observable.mjs'
+		import {Message} from './lib/Models.mjs'
+		const socket = io.connect('', {query: 'username=' + window.member.username})
+		const model = {
+			messages: new ObservableArray(),
+			roster: new ObservableArray(),
+			message: makeKeyValueObservable(new Message())
+		}
+	
+		const app = new Chat(model, socket, window)
+		app.start()
+		app.requestNotificationPermission()
+	</script>	
 </html>
