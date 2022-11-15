@@ -2,47 +2,6 @@
 @import "//unpkg.com/open-props";
 @import '//unpkg.com/open-props/normalize.min.css'; 
 
-html {
-	font-size: 100%;
-}
-body {
-	line-height: 1.7857;
-	font-weight: normal;
-	font-style: normal;
-	font-family: "Proxima Nova", "helvetica neue", helvetica, verdana, arial, tahoma, sans-serif;
-}
-
-h1{
-	font-size: 40px;
-}
-h2{
-	font-size: 30px;
-}
-h3{
-	font-size: 25px;
-}
-h4, p{
-	font-size: 20px;
-}
-h5{
-	font-size: 20px;
-}
-h6{
-	font-size: 0px;
-}
-h1,h2,h3,h4,h5,h6
-, .h1, .h2, .h3, .h4, .h5, .h6{
-	text-align: left;
-	line-height: 1em;
-	letter-spacing: 1px;
-	padding: 0;
-	margin: 0 0 46px 0;
-	font-weight: 400;
-	font-family: "Myriad Set Pro", "Helvetica Neue", "Helvetica", "Arial", "Verdana", "sans-serif";
-}
-:focus {outline:none;}
-::-moz-focus-inner {border:0;}
-
 aside.nav nav a{
 	display: block;
 	width: 100%;
@@ -50,10 +9,6 @@ aside.nav nav a{
 }
 aside.nav nav a:hover{
 	text-decoration: none;
-}
-
-.glyphicon-power:before {
-  content: "\e017";
 }
 
 .member{
@@ -72,27 +27,4 @@ form .file{
 	position: absolute;
 	right: 75px;
 	top: 0;
-}
-
-#comment{
-	position: fixed;
-	z-index: 5;
-}
-#comment form{
-	padding: 0;
-	margin: 0;
-}
-#comment input{
-	font-size: 1.5em;
-	height: 2em;
-	width: 100%;
-	border: 2px;
-	padding: 0 0 0 25px;
-	margin: 0;
-	font-weight: normal;
-}
-
-.discussion{
-	padding-top:125px !important;
-	position: relative;
 }

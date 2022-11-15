@@ -20,30 +20,6 @@
 		{{#each css }}
 		<link rel="stylesheet" type="text/css" href="{{ this }}" />
 		{{/each}}
-		<style>
-			
-			main {
-				display: flex;
-				flex-direction: column;
-			}
-			@media all and (min-width: 768px){
-				main {
-					flex-direction: row;
-					flex-wrap: wrap;
-				}
-				header, footer{
-					width: 100%;
-				}
-				.middle {
-					flex: 2;
-					order: 2;
-					min-height: 80vh;
-				}
-				footer {
-					order: 4;
-				}
-			}
-		</style>
 		<script>
 			var member = {{{ member }}}
 		</script>		

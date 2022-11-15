@@ -1,3 +1,41 @@
+main {
+	display: flex;
+	flex-direction: column;
+}
+@media all and (min-width: 768px){
+	main {
+		flex-direction: row;
+		flex-wrap: wrap;
+	}
+	header, footer{
+		width: 100%;
+	}
+	.middle {
+		flex: 2;
+		order: 2;
+		min-height: 80vh;
+	}
+	footer {
+		order: 4;
+	}
+}
+
+.comment input {
+	border-radius: var(--radius-5);
+	width: 100%;
+    box-sizing:border-box;
+	padding: 10px;
+}
+
+.discussion{
+	padding-top:125px !important;
+	position: relative;
+}
+
+#messagesView {
+	margin: 1em 0;
+}
+
 .message img.external{
 	width: 100%;
 }
@@ -15,4 +53,9 @@
 	background: red;
 	font-weight: bold;
 	display: none;
+}
+
+
+footer {
+	text-align: center;
 }

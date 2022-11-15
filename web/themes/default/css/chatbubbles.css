@@ -62,12 +62,16 @@
 , .roster .avatar img{
 	border-radius: var(--radius-round);
 }
-.roster ul{
-	padding:0;
-	text-align: center;
+
+.roster {
+	padding: 0 1em;
 }
 .roster li{
-	position: relative;
+	margin-bottom: 1em;
+}
+
+.roster .avatar figcaption{
+
 }
 
 .discussion .self .avatar{

@@ -49,12 +49,13 @@
 				</figure>
 			</li>
 		</ul>
-		{{#if user}}
-		<a class="on" href="/logout" title="Signout of the site"><span>Signout</span></a>
-		{{else}}
-		<a class="off" href="/login" name="signin" title="Signinto the site"><span>Signin</span></a>
-		{{/if}}
 	</nav>
 </aside>
-<footer>Footer</footer>
+<footer>	
+	{{#if user}}
+	<a class="on" href="/logout" title="Signout of the site"><span>Signout</span></a>
+	{{else}}
+	<a class="off" href="/login" name="signin" title="Signinto the site"><span>Signin</span></a>
+	{{/if}}
+</footer>
 {{/layouts/room.html}}

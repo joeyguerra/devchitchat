@@ -1,59 +1,37 @@
+  
+@import "//unpkg.com/open-props/buttons.min.css";
 
-.header .home{
-	width: 57px;
-	height: 57px;
-	display: block;
-	position: fixed;
-	top: 1em;
-	left: 1em;
-}
-.header .home span{
-	display: none;
-}
-.identify{
-	width: 100%;
-	height: 100%;
-	position: fixed;
-	top: 10em;
-	left: 0;
-	right: 0;
-}
-.identify h2{
-	font-size: 3em;
-	margin-left: 1em;
-	text-align: center;
-}
-.identify .buttons{
-	text-align: center;
-}
-.identify .buttons button{
-	font-size: 3em;
-}
-.identify .buttons form{
-	margin-bottom: 1em;
-}
-.hero a{
-	padding-right: 6px;
-}
-.hero h1, .identify h2{
-	font-family: 'Pacifico', cursive;
+body {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--size-5);
+	padding: var(--size-5);
 }
 
-.hero, .hero h1{
-	text-align: center;
-	width: 100%;
+form {
+	background: var(--surface-2);
+	border: var(--border-size-1) solid var(--surface-3);
+	border-radius: var(--radius-2);
+	box-shadow: var(--shadow-2);
 }
-.hero h1{
-	font-size: 5em;
-	margin-top: 30px;
-}
-.hero p{
-	text-align: center;
-	font-size: 2em;
-}
-footer.hero{
-	position: fixed;
-	bottom: 0;
-	width: 100%;
 
+.fluid-flex {
+	display: flex;
+	flex-wrap: wrap;
+	place-content: center;
+	align-items: flex-start;
+	padding: var(--size-5);
+	gap: var(--size-5);
+}
+
+section {
+	display: grid;
+	gap: var(--size-2);
+	text-align: center;
+}
+
+section > p {
+	font-size: var(--font-size-1);
 }

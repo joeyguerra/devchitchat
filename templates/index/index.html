@@ -1,24 +1,23 @@
 {{#>layouts/default.html}}
-<section>
+<section class="identify">
 	<header role="header" class="hero">
 		<a href="https://github.com/ijoey/devchitchat/issues" title="devchitchat issues" class="fa" target="_blank">Issues</a>
 		<a href="https://github.com/ijoey/devchitchat" title="devchitchat repo" class="fa fa-github" target="_blank">Code</a>
 		<a href="/" title="devchitchat index">{{ title }}</a>
 		<h1>Hi!</h1>
 	</header>
-	<section class="identify">
-		<h2>Identify yourself with</h2>
-		<div class="buttons">
-			<form method="get" action="/login/twitter">
-				<button type="submit" class="fa fa-twitter btn-lg">Twitter</button>
-			</form>
-			<form method="get" action="/login/github">
-				<button type="submit" class="fa fa-github btn-lg">Github</button>
-			</form>
-		</div>
-	</section>
-	<footer class="hero">
+	<h2>Signin with one of these.</h2>
+	<div class="fluid-flex">
+		<form method="get" action="/login/twitter" class="card">
+			<button type="submit">Twitter</button>
+		</form>
+		<form method="get" action="/login/github" class="card">
+			<button type="submit"">Github</button>
+		</form>
+	</div>
+	<footer>
 		<p>devchitchat - every day around 10 AM.</p>
 	</footer>
+	
 </section>
 {{/layouts/default.html}}
