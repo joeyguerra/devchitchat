@@ -63,8 +63,13 @@
 	border-radius: var(--radius-round);
 }
 
+@media all and (max-width: 768px){
+	.roster {
+		display: flex;
+	}
+}
 .roster {
-	padding: 0 1em;
+	padding: 0 1em;	
 }
 .roster li{
 	margin-bottom: 1em;

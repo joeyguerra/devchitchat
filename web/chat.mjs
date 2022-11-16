@@ -44,11 +44,11 @@ export default (web) => {
 	if(!web.Passport){
 		throw new Error("Passport is required")
 	}
-	var io = new Server(web.server)
-	var cookieParserFunction = web.cookieParser()
-	var cookieSessionFunction = web.cookieSession({ keys: [web.config.COOKIE_KEY, ':blah:'], secret: web.config.COOKIE_SECRET})
-	var Persistence = web.Persistence
-	var bus = web.bus
+	const io = new Server(web.server)
+	const cookieParserFunction = web.cookieParser()
+	const cookieSessionFunction = web.cookieSession({ keys: [web.config.COOKIE_KEY, ':blah:'], secret: web.config.COOKIE_SECRET})
+	const Persistence = web.Persistence
+	const bus = web.bus
 
 	function getRoomFromReferrer(socket){
 		if(socket.request._query.room){

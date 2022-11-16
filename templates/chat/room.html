@@ -41,7 +41,7 @@
 </section>
 <aside class="nav">
 	<nav id="menu">
-		<ul id="rosterView" class="roster" style="display: none;">
+		<ul id="rosterView" class="roster">
 			<li>
 				<figure class="avatar">
 					<img class="img-circle" />
@@ -51,7 +51,8 @@
 		</ul>
 	</nav>
 </aside>
-<footer>	
+<footer>
+	<p id="reconnectingElement" style="visibility: hidden">Reconnecting</p>
 	{{#if user}}
 	<a class="on" href="/logout" title="Signout of the site"><span>Signout</span></a>
 	{{else}}

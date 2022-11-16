@@ -5,19 +5,19 @@ export default class RoasterView {
         this.model = model
         this.delegate = delegate
 		this.template = this.container.querySelector('li:first-child').cloneNode(true)
-		this.template.style.display = 'none'
-		this.container.style.display = 'block'
         this.container.removeChild(this.container.querySelector('li:first-child'))
 		this.model.observe('push', this.userJoined.bind(this))
 		this.model.observe('pop', this.userLeft.bind(this))
 		this.model.observe('remove', this.userLeft.bind(this))
     }
     joined(member){
+        console.trace('joined', member)
         if(!this.model.find(m => m.username == member.username)){
             this.model.push(member)
         }
     }
     left(member){
+        console.trace('left', member)
         this.model.remove(m => m.username == member.username)
     }
     connected(nicknames){

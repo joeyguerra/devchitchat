@@ -398,7 +398,7 @@ app.locals.description = 'Every day around 10 AM'
 app.locals.author = 'joey g'
 
 app.get('/welcome.:format?', async (req, res)=>{
-	const messages = await db.message.findToday('w2')
+	const messages = await db.message.findToday('welcome')
 	res.render('chat/room.html', {
 		title: `the welcoming room`,
 		member: JSON.stringify(req.user, null, 2),
@@ -543,15 +543,6 @@ app.get("/chat/:room.:format?", (req, res)=>{
 			resource: new Resource({title: "Welcome", js:[
 				'/socket.io/socket.io.js',
 				'/public/js/hogan-2.0.0.min.js',
-				'/public/js/uri.js',
-				'/public/js/mvc.js',
-				'/public/js/reconnectingcounterview.js',
-				'/public/js/messageview.js',
-				'/public/js/previewview.js',
-				'/public/js/rosterview.js',
-				'/public/js/discussionview.js',
-				'/public/js/chat.js',
-				'/public/js/menu.js'
 			], css: ['chatbubbles', 'room']}),
 			model: doc})
 	})

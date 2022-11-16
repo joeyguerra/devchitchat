@@ -39,10 +39,7 @@ class Chat {
             ACTIVITY_LIMIT_IN_SECONDS: 20,
         }
         this.isNotificationsOn = false
-        this.reconnectingCounterView = this.win.document.createElement('div')
-        this.reconnectingCounterView.className = 'reconnecting'
         this.reconnection = makeKeyValueObservable({times: 0})
-        this.win.document.body.appendChild(this.reconnectingCounterView)
         this.isActiveRightNow = false
         this.activityTimestamp = new Date()
     }
@@ -65,7 +62,7 @@ class Chat {
             this.views.push(dView)
             this.views.push(new RosterView(rosterView, this.model.roster, this))
             this.views.push(new MessageView(messageView, this.model.message, this))
-            this.views.push(new ReconnectingCounterView(this.reconnectingCounterView, this.reconnection, this))
+            this.views.push(new ReconnectingCounterView(this.win.reconnectingElement, this.reconnection, this))
 
             const firstChild = dView.container.querySelector('.discussion li:first-child')
             const template = firstChild.cloneNode(true)

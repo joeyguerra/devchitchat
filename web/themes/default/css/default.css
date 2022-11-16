@@ -1,7 +1,9 @@
 @import "//fonts.googleapis.com/css?family=Pacifico";
 @import "//unpkg.com/open-props";
 @import '//unpkg.com/open-props/normalize.min.css'; 
-
+body{
+	padding: 0 3em;
+}
 aside.nav nav a{
 	display: block;
 	width: 100%;

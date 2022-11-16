@@ -55,6 +55,9 @@ main {
 	display: none;
 }
 
+.roster figure {
+	gap: var(--size-0)
+}
 
 footer {
 	text-align: center;
