@@ -12,6 +12,8 @@ export default class MessageView {
             position: this.container.style.position,
             top: this.container.style.top
         }
+        this.defaultClassName = this.container.className
+
         this.interval = null
         this.field = this.container.querySelector("[name='message']")
         this.form = this.container
@@ -101,13 +103,11 @@ export default class MessageView {
     }
     scrolling(e){
         if(this.delegate.win.scrollY > 0){
-            if(this.container.style.position != 'fixed'){
-                this.container.style.position = 'fixed'
-                this.container.style.top = '0'
+            if(this.container.className.indexOf('fixed') === -1){
+                this.container.className += ' fixed'
             }
-        }else if(this.container.style.position != this.defaultStyle.position){
-            this.container.style.position = this.defaultStyle.position
-            this.container.style.top = this.defaultStyle.top
+        } else if(this.container.className != this.defaultClassName){
+            this.container.className = this.defaultClassName
         }
     }
     messageWasDoubleClicked(message){

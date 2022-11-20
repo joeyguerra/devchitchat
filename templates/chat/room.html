@@ -1,4 +1,16 @@
 {{#>layouts/room.html}}
+<aside class="nav">
+	<nav id="menu">
+		<ul id="rosterView" class="roster">
+			<li>
+				<figure class="avatar">
+					<img class="img-circle" />
+					<figcaption></figcaption>
+				</figure>
+			</li>
+		</ul>
+	</nav>
+</aside>
 <section class="middle">	
 	<div id="messagesView">
 		<form id="comment" class="comment">
@@ -39,18 +51,6 @@
 		</ol>
 	</div>
 </section>
-<aside class="nav">
-	<nav id="menu">
-		<ul id="rosterView" class="roster">
-			<li>
-				<figure class="avatar">
-					<img class="img-circle" />
-					<figcaption></figcaption>
-				</figure>
-			</li>
-		</ul>
-	</nav>
-</aside>
 <footer>
 	<p id="reconnectingElement" style="visibility: hidden">Reconnecting</p>
 	{{#if user}}

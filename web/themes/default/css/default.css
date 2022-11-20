@@ -4,23 +4,6 @@
 body{
 	padding: 0 3em;
 }
-aside.nav nav a{
-	display: block;
-	width: 100%;
-	text-align: center;
-}
-aside.nav nav a:hover{
-	text-decoration: none;
-}
-
-.member{
-	width: 10vw;
-	float: left;
-	text-align: center;
-}
-.member h2{
-	text-align: center;
-}
 
 form .file{
 	height: 100px;

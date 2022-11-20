@@ -1,25 +1,34 @@
+
 main {
-	display: flex;
-	flex-direction: column;
-}
-@media all and (min-width: 768px){
-	main {
-		flex-direction: row;
-		flex-wrap: wrap;
-	}
-	header, footer{
-		width: 100%;
-	}
-	.middle {
-		flex: 2;
-		order: 2;
-		min-height: 80vh;
-	}
-	footer {
-		order: 4;
-	}
+	display: grid;
+	grid-template-columns: .1fr 1fr;
+	grid-template-rows: auto;
+	grid-template-areas: 	'roster discussion'
+							'footer footer';
 }
 
+/* style main to fit mobild and ipad */
+@media screen and (max-width: 1024px) {
+	main {
+		grid-template-columns: 1fr;
+		grid-template-rows: auto auto;
+		grid-template-areas: 	'roster'
+								'discussion';
+	}
+}
+.roster {
+	grid-area: roster;
+}
+.discussion {
+	grid-area: discussion;
+}
+.footer {
+	grid-area: footer;
+}
+
+.comment {
+	z-index: 1000;
+}
 .comment input {
 	border-radius: var(--radius-5);
 	width: 100%;
@@ -30,10 +39,6 @@ main {
 .discussion{
 	padding-top:125px !important;
 	position: relative;
-}
-
-#messagesView {
-	margin: 1em 0;
 }
 
 .message img.external{
@@ -53,10 +58,6 @@ main {
 	background: red;
 	font-weight: bold;
 	display: none;
-}
-
-.roster figure {
-	gap: var(--size-0)
 }
 
 footer {
