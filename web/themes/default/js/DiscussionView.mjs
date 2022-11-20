@@ -82,6 +82,7 @@ function hookForShowingXml(message){
 }
 
 class DiscussionView {
+    #md
     constructor(container, model, delegate){
         this.container = container
         this.model = model
@@ -89,6 +90,8 @@ class DiscussionView {
         this.template = this.container.querySelector('.discussion li')
         this.discussion = this.container.querySelector('.discussion')
         this.lastTimeMessageWasSent = (new Date()).getTime()
+        console.log(this.delegate)
+        this.#md = this.delegate.win.markdownit()
         this.hooks = [
             hookForDataImage,
             hookForLinks,
@@ -97,7 +100,11 @@ class DiscussionView {
             hookGithubResponse,
             hookListOfUsers,
             hookForShowingXml,
-            hookForNewLines    
+            hookForNewLines,
+            message => {
+                message.text = this.#md.render(message.text)
+                return message
+            }
         ]
 		this.model.observe('push', this.messageWasAdded.bind(this))
 		this.model.observe('pop', this.messageWasRemoved.bind(this))

@@ -250,6 +250,8 @@ app.use("/public", express.static(chilla.themeRoot))
 console.log(rootPath)
 app.use("/uploads", express.static(UPLAODS_FOLDER))
 app.use('/lib', express.static(`${__dirname.replace('/web', '')}/lib`))
+app.use('/public/markdown', express.static(`${__dirname.replace('/web', '')}/node_modules/markdown-it/dist`))
+
 app.engine('html', async (filePath, options, callback)=>{
 	const data = await File.readFile(filePath, 'utf-8')
 	const template = handlebars.compile(data)
