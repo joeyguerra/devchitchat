@@ -13,7 +13,6 @@ export default class MessageView {
             top: this.container.style.top
         }
         this.defaultClassName = this.container.className
-
         this.interval = null
         this.field = this.container.querySelector("[name='message']")
         this.form = this.container
@@ -33,6 +32,7 @@ export default class MessageView {
         })
 
         this.field.addEventListener('keyup', this, true)
+        this.field.addEventListener('keypress', this, true)
         this.form.addEventListener('submit', this, true)
         this.form.addEventListener('paste', this, true)
         this.field.focus()
@@ -57,7 +57,7 @@ export default class MessageView {
         NotificationCenter.publish(Events.HAS_STOPPED_TYPING, this, null);
     }
     sendMessage(){
-        if(this.model.text.trim().length == 0) return
+        if(this.model.text?.trim().length == 0) return
         this.model.from = this.model.to
         this.model.time = Date.now()
         this.model.text = this.field.value
@@ -88,14 +88,22 @@ export default class MessageView {
         reader.readAsDataURL(file)
     }
     submit(e){
+        // Don't submit the form. Only send message after user hits enter.
         e.preventDefault()
-        this.sendMessage()
+    }
+    keypress(e){
     }
     keyup(e){
+        // Use keyup so the preview will show the last character.
+
         this.typingTimestamp = new Date()
         if(!this.typingTimer) this.typingTimer = this.startTimer()
-        if(e.keyCode == 13) this.button.click()
-        this.model.text = this.field.value
+        if(e.keyCode == 13 && !e.shiftKey) {
+            console.log(this.model.text)
+            return this.sendMessage()
+        }
+        console.log('afterwards', this.field.value)
+        this.model.text = this.field.value.replace(/\n$/, '')
     }
     release(){
         this.field.removeEventListener('keyup', this)

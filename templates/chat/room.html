@@ -14,7 +14,7 @@
 <section class="middle">	
 	<div id="messagesView">
 		<form id="comment" class="comment">
-			<input type="text" name="message" />
+			<textarea name="message" rows="1" autocomplete="on" autocorrect="on" autofocus="true" spellcheck="true"></textarea>
 			<button type="submit">Send</button>
 		</form>
 		<ol class="discussion">
@@ -42,7 +42,7 @@
 				</figure>
 			{{/unless}}
 				<div class="message" data-count="{{@index}}">
-					<div class="text">{{text}}</div>
+					<div class="text">{{{text}}}</div>
 					<time datetime="{{w3cFormat time}}" class="today">{{w3cFormat time}}</time>
 				</div>
 				{{/each}}

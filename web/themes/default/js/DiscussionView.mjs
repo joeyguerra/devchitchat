@@ -72,10 +72,7 @@ function hookForDataImage(message){
     message.text = message.text.replace(/^data\:image(.*)/, '<img class="external" src="$&" />')
     return message
 }
-function hookForNewLines(message){
-    message.text = message.text.replace(/\n/ig, '<br />')
-    return message
-}
+
 function hookForShowingXml(message){
     message.text = message.text.replace(/</ig, '&lt').replace(/>/ig, '/&gt')
     return message
@@ -90,7 +87,6 @@ class DiscussionView {
         this.template = this.container.querySelector('.discussion li')
         this.discussion = this.container.querySelector('.discussion')
         this.lastTimeMessageWasSent = (new Date()).getTime()
-        console.log(this.delegate)
         this.#md = this.delegate.win.markdownit()
         this.hooks = [
             hookForDataImage,
@@ -100,7 +96,6 @@ class DiscussionView {
             hookGithubResponse,
             hookListOfUsers,
             hookForShowingXml,
-            hookForNewLines,
             message => {
                 message.text = this.#md.render(message.text)
                 return message

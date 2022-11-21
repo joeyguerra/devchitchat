@@ -20,6 +20,13 @@ import Db from '../lib/db.mjs'
 import TwitterAuth from '../lib/TwitterAuth.mjs'
 import bodyParser from 'body-parser'
 import handlebars from 'handlebars'
+import MarkdownIt from 'markdown-it'
+
+const md = new MarkdownIt({
+	html: true,
+	linkify: true,
+	typographer: true
+})
 
 const File = fs.promises
 
@@ -401,6 +408,11 @@ app.locals.author = 'joey g'
 
 app.get('/welcome.:format?', async (req, res)=>{
 	const messages = await db.message.findToday('welcome')
+	messages.forEach(m => {
+		m.messages.forEach( message => {
+			message.text = md.render(message.text)
+		})
+	})
 	res.render('chat/room.html', {
 		title: `the welcoming room`,
 		member: JSON.stringify(req.user, null, 2),
