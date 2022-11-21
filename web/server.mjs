@@ -203,12 +203,7 @@ handlebars.registerHelper('w3cFormat', (value, options) => {
 	return (new Date(value)).toISOString()
 })
 handlebars.registerHelper('ifThisIsTheFirstMessageInTheGroup', (message, index, messages, loggedInMember, options)=>{
-
 	let html = null
-	// if(message.from.username != loggedInMember.username){
-	// 	options.data.root.counter = 0
-	// }
-	console.log(options.data.root.counter, message.from.username == loggedInMember.username, message.from.username, loggedInMember.username, messages[index + 1]?.from.username)
 	if(options.data.root.counter == 0 &&
 		message.from.username == loggedInMember.username){
 		options.data.root.counter = 1

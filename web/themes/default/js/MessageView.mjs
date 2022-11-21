@@ -99,10 +99,8 @@ export default class MessageView {
         this.typingTimestamp = new Date()
         if(!this.typingTimer) this.typingTimer = this.startTimer()
         if(e.keyCode == 13 && !e.shiftKey) {
-            console.log(this.model.text)
             return this.sendMessage()
         }
-        console.log('afterwards', this.field.value)
         this.model.text = this.field.value.replace(/\n$/, '')
     }
     release(){
