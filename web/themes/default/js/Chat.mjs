@@ -6,6 +6,7 @@ import RosterView from '/public/js/RosterView.mjs'
 import MessageView from '/public/js/MessageView.mjs'
 import ReconnectingCounterView from '/public/js/ReconnectingCounterView.mjs'
 import PreviewView from '/public/js/PreviewView.mjs'
+import findParentWith from '/public/js/findParentWith.mjs'
 
 function debug(level){
     console.log(arguments)
@@ -77,7 +78,7 @@ class Chat {
             this.win.addEventListener('resize', this, true)
 
             this.socket.emit('nickname', this.win.member.username, exists => {
-                this.model.roster.push({username: this.win.member.username, name: this.win.member.displayName, avatar: this.win.member.avatar})
+                this.model.roster.push({id: this.win.member.id, username: this.win.member.username, name: this.win.member.displayName, avatar: this.win.member.avatar})
             })
 
             this.socket.emit('send previous messages', 'hello?', list => {
@@ -193,7 +194,8 @@ class Chat {
             this.model.roster.push({
                 username: this.win.member.username,
                 name: this.win.member.displayName,
-                avatar: this.win.member.avatar
+                avatar: this.win.member.avatar,
+                id: this.win.member.id
             })
         })
     }
@@ -229,18 +231,7 @@ class Chat {
     messageWasDoubleClicked(e){
         this.views.forEach(v => {
             if(v.messageWasDoubleClicked){
-                const fromId = e.target.parentNode.parentNode.getAttribute("data-from")
-                const from = this.model.roster.find(u => {
-                    return fromId === u.id
-                })
-                v.messageWasDoubleClicked({text: e.target.innerHTML, from: from})
-            }
-        })
-    }
-    messageWasDoubleClicked(e){
-        this.views.forEach(v => {
-            if(v.messageWasDoubleClicked){
-                const fromId = e.target.parentNode.parentNode.getAttribute("data-from")
+                const fromId = findParentWith(e.target, node => node.getAttribute('data-from'))?.getAttribute('data-from')
                 const from = this.model.roster.find(u => {
                     return fromId === u.id
                 })

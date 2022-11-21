@@ -198,7 +198,9 @@ async function readFiles(folders, source, delegate) {
         }
     }
 })()
-
+handlebars.registerHelper('tojson', (value, options)=>{
+	return JSON.stringify(value, null, 2)
+})
 handlebars.registerHelper('w3cFormat', (value, options) => {
 	return (new Date(value)).toISOString()
 })

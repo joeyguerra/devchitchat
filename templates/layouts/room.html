@@ -21,7 +21,8 @@
 		<link rel="stylesheet" type="text/css" href="{{ this }}" />
 		{{/each}}
 		<script>
-			var member = {{{ member }}}
+			window.member = {{{ member }}}
+			window.messagesFromServer = []
 		</script>		
 	</head>
 	<body>
@@ -43,13 +44,14 @@
 		import Chat from './public/js/Chat.mjs'
 		import {ObservableArray, makeKeyValueObservable} from './lib/Observable.mjs'
 		import {Message} from './lib/Models.mjs'
+
 		const socket = io.connect('', {query: 'username=' + window.member.username})
 		const model = {
 			messages: new ObservableArray(),
 			roster: new ObservableArray(),
 			message: makeKeyValueObservable(new Message())
 		}
-	
+		window.messagesFromServer.forEach(m => model.messages.push(m))
 		const app = new Chat(model, socket, window)
 		app.start()
 		app.requestNotificationPermission()

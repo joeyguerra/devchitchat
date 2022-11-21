@@ -36,6 +36,7 @@
 				<time datetime="{{w3cFormat time}}">{{w3cFormat time}}</time>
 			</li>
 			<li class="{{selfOrOther from ../../user ../messages}}" data-from="{{ from.id }}">
+				<script>messagesFromServer.push({{{tojson this}}})</script>
 				<figure class="avatar">
 					<img class="img-circle" data-src="{{from.avatar}}" src="{{from.avatar}}" />
 					<figcaption>{{from.displayName}}</figcaption>
