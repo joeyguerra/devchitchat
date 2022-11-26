@@ -33,7 +33,7 @@
 			{{#each messages}}
 			{{#unless @index}}
 			<li class="sent {{selfOrOther from ../../user ../messages}}">
-				<time datetime="{{w3cFormat time}}">{{w3cFormat time}}</time>
+				<time datetime="{{w3cFormat time}}">{{forDisplay time}}</time>
 				<header>
 					<label>{{from.displayName}}</label>
 				</header>
@@ -47,7 +47,7 @@
 			{{/unless}}
 				<div class="message" data-count="{{@index}}">
 					<div class="text">{{{text}}}</div>
-					<time datetime="{{w3cFormat time}}" class="today">{{w3cFormat time}}</time>
+					<time datetime="{{w3cFormat time}}" class="today">{{forDisplay time}}</time>
 				</div>
 				{{/each}}
 			</li>

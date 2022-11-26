@@ -23,6 +23,7 @@ import Member from '../app/models/Member.mjs'
 import GithubAuth from '../lib/GithubAuth.mjs'
 import TwitterAuth from '../lib/TwitterAuth.mjs'
 import SocketClient from '../lib/SocketClient.mjs'
+import Message from '../app/Models/message.mjs'
 
 const md = new MarkdownIt({
 	html: true,
@@ -103,6 +104,10 @@ handlebars.registerHelper('tojson', (value, options)=>{
 handlebars.registerHelper('w3cFormat', (value, options) => {
 	return (new Date(value)).toISOString()
 })
+handlebars.registerHelper('forDisplay', (value, options) => {
+	return Message.forDisplay(new Date(value))
+})
+
 handlebars.registerHelper('ifThisIsTheFirstMessageInTheGroup', (message, index, messages, loggedInMember, options)=>{
 	let html = null
 	if(options.data.root.counter == 0 &&

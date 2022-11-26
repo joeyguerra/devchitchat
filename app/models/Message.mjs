@@ -23,6 +23,14 @@ Message.prototype = {
 		return moment.utc(date).format()
 	}
 }
+Message.forDisplay = date => {
+	const options = {
+		dateStyle: 'full',
+		timeStyle: 'medium',
+	}
+	return new Intl.DateTimeFormat('en', options).format(date)
+}
+
 Message.sortByDate = function(list){
 	return list.sort(byDate)
 }

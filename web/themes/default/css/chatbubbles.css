@@ -81,7 +81,8 @@
 	left: 0;
 }
 .discussion .message{
-	margin-left: 65px;
+	display: table;
+	margin-left: 45px;
 	margin-right: 0;
 	margin-bottom: var(--size-1);
 	padding: var(--size-1);
@@ -97,6 +98,21 @@
 	padding: 5px;
 	min-height: 20px;
 	cursor: pointer;
+}
+
+.discussion .self {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	align-self: center;
+}
+
+.discussion .self .message{
+	position:relative;
+	color: var(--gray-0);
+	background: var(--blue-4);
+	border-radius: var(--radius-3);
+	margin-right: 45px;
 }
 
 /* the little flip */
@@ -179,12 +195,4 @@
 
 .comment button{
 	display: none;
-}
-
-.discussion .self .message{
-	position:relative;
-	color: var(--gray-0);
-	background: var(--blue-4);
-	border-radius: var(--radius-3);
-	margin-right: 65px;
 }

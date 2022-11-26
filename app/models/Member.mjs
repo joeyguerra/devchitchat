@@ -27,6 +27,15 @@ Member.prototype = {
 	, w3cFormat: function(date){
 		return moment.utc(date).format();
 	}
+	, forDisplay(date){
+		const options = {
+			weekday: 'long',
+			year: 'numeric',
+			month: 'long',
+			day: 'numeric',
+		}
+		return date.toLocaleDateString(date, options)
+	}
 	, canEdit: function(user){
 		return user.id === this.id;
 	}
