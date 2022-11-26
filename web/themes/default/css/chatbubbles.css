@@ -121,7 +121,7 @@
 	content:"";
 	position:absolute;
 	z-index: -3;
-	bottom: 20px;
+	bottom: 2px;
 	right: 40px;
 	height: 20px;
 	border-left: 20px solid var(--orange-6);
@@ -132,7 +132,7 @@
 	content:"";
 	position:absolute;
 	z-index: -2;
-	bottom: 20px;
+	bottom: 2px;
 	right: 5px;
 	width: 26px;
 	height: 25px;

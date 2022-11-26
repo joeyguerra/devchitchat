@@ -69,7 +69,6 @@ class Chat {
             const template = firstChild.cloneNode(true)
             template.style.display = 'none'
             template.className = 'self preview'
-            template.innerHTML += '<small>Not sent yet.</small>'
             template.querySelector('img').src = this.win.member.avatar
             firstChild.parentNode.insertBefore(template, firstChild)
             
