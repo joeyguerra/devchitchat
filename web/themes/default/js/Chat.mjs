@@ -71,7 +71,7 @@ class Chat {
             template.className = 'self preview'
             template.innerHTML += '<small>Not sent yet.</small>'
             template.querySelector('img').src = this.win.member.avatar
-            firstChild.parentNode.appendChild(template)
+            firstChild.parentNode.insertBefore(template, firstChild)
             
             this.views.push(new PreviewView(template, this.model.message, this))
             this.views.forEach(v => v.resize ? v.resize({h: this.win.document.documentElement.clientHeight, w: this.win.document.documentElement.clientWidth}) : null)

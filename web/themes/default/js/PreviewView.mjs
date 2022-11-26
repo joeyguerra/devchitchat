@@ -8,10 +8,6 @@ export default class PreviewView {
         this.delegate = delegate
         this.#md = this.delegate.win.markdownit()
         this.text = container.querySelector('.message .text')
-		this.container.style.display = 'none'
-		this.container.style.position = 'absolute'
-		this.container.style.top = '50px'
-		this.container.style.right = '20px'
 		this.model.observe('text', this)
         NotificationCenter.subscribe(Events.HAS_STARTED_TYPING, this.show.bind(this), null)
 		NotificationCenter.subscribe(Events.HAS_STOPPED_TYPING, this.hide.bind(this), null)

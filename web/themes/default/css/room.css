@@ -1,4 +1,6 @@
-
+body>header{
+	margin-bottom: var(--size-5);
+}
 main {
 	display: grid;
 	grid-template-columns: .1fr 1fr;
@@ -6,7 +8,9 @@ main {
 	grid-template-areas: 	'roster discussion'
 							'footer footer';
 }
-
+h1, h2, h3, h4, h5, h6 {
+	--text-1: var(--gray-1);
+}
 /* style main to fit mobild and ipad */
 @media screen and (max-width: 1024px) {
 	main {
@@ -16,6 +20,7 @@ main {
 								'discussion';
 	}
 }
+
 .roster {
 	grid-area: roster;
 }
@@ -34,11 +39,6 @@ main {
 	width: 100%;
     box-sizing:border-box;
 	padding: 10px;
-}
-
-.discussion{
-	padding-top:125px !important;
-	position: relative;
 }
 
 .message img.external{

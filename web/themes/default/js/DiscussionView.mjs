@@ -119,38 +119,40 @@ class DiscussionView {
     messageWasAdded(key, old, v){
         if(!v) return
         if(!v.from) return
-        var originalHeight = this.discussion.scrollHeight
-        var lastMessage = this.discussion.querySelector(`[data-from='${v.from.id}']:first-child`)
-        var elem = this.template.cloneNode(true)
+        const originalHeight = this.discussion.scrollHeight
+        // const lastMessage = this.discussion.querySelector(`[data-from='${v.from.id}']`)
+        const lastMessage = document.querySelector(`.discussion li[data-from]`)
+        const fromId = lastMessage.getAttribute('data-from')
+        const elem = this.template.cloneNode(true)
         elem.setAttribute('data-from', v.from.id)
         elem.addEventListener('dblclick', this.delegate.messageWasDoubleClicked.bind(this.delegate), true)
         elem.style.display = 'block'
         this.hooks.forEach(hook => {
             v = hook(v)
         })
-        if(!lastMessage){
-            var first = this.discussion.querySelector('.discussion li:first-child')
+        if(fromId == v.from.id){
+            const messages = this.template.querySelector('.message').cloneNode(true)
+            messages.querySelector('.text').innerHTML = v.text
+            lastMessage.insertBefore(messages, lastMessage.querySelector('.message'))
+        }else{
+            const first = this.discussion.querySelector('.discussion li:first-child')
             if(this.delegate.win.member.username == v.from.username){
                 elem.className = 'self'
             }
             elem.querySelector('figcaption').innerHTML = v.from.displayName
             elem.querySelector('.text').innerHTML = v.text
             elem.querySelector('img').src = v.from.avatar
-            var time = this.delegate.win.document.createElement('li')
+            const time = this.delegate.win.document.createElement('li')
             time.className = 'sent'
             time.innerHTML = `<time>${(new Date(this.lastTimeMessageWasSent)).toISOString()}</time>`
-            this.discussion.insertBefore(elem, first)
-            this.discussion.insertBefore(time, first)
-        }else{
-            var messages = this.template.querySelector('.message').cloneNode(true)
-            messages.querySelector('.text').innerHTML = v.text
-            lastMessage.insertBefore(messages, lastMessage.querySelector('.message'))
+            first.parentNode.insertBefore(elem, first.nextSibling)
+            elem.parentNode.insertBefore(time, elem.nextSibling)
         }
         this.lastTimeMessageWasSent = v.time
         NotificationCenter.publish(Events.CHAT_HEIGHT_HAS_CHANGED, this, this.discussion.scrollHeight - originalHeight)
     }
     messageWasRemoved(key, old, v){
-        var last = this.container.querySelector(".discussion:last-child")
+        const last = this.container.querySelector(".discussion:last-child")
         this.container.removeChild(last)
     }
 }

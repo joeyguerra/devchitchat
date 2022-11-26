@@ -1,6 +1,6 @@
 import Datastore from '../lib/db.mjs'
-import Member from '../app/entities/Member.mjs'
-import Message from '../app/entities/message.mjs'
+import Member from '../app/models/Member.mjs'
+import Message from '../app/models/message.mjs'
 let config = null
 
 function replaceLastMember(id, member){

@@ -10,28 +10,31 @@ export default class RoasterView {
 		this.model.observe('pop', this.userLeft.bind(this))
 		this.model.observe('remove', this.userLeft.bind(this))
     }
+    #prepareForDomId(id){
+        return id.replace(':', '_')
+    }
     joined(member){
-        console.trace('joined', member)
-        if(!this.model.find(m => m.username == member.username)){
+        const found = this.model.find(m => m.id == member.id)
+        if(!found){
             this.model.push(member)
         }
     }
     left(member){
-        console.trace('left', member)
-        this.model.remove(m => m.username == member.username)
+        this.model.remove(m => m.id == member.id)
     }
     connected(nicknames){
         for(let name in nicknames){
             let member = nicknames[name]
-            if(this.model.find(m => m.username == member.username)) continue
+            if(this.model.find(m => m.id == member.id)) continue
             this.model.push(member)
         }
     }
     userJoined(key, old, v){
-        if(this.container.querySelector(`#${v.username}`)) return
+        const domId = this.#prepareForDomId(v.id)
+        if(this.container.querySelector(`#${domId}`)) return
         const elem = this.template.cloneNode(true)
         elem.style.display = 'block'
-        elem.id = v.username
+        elem.id = domId
         elem.querySelector('img').src = v.avatar
         elem.querySelector('figcaption').innerHTML = v.displayName.split(' ').map(n => n.substring(0, 1).toUpperCase()).join('')
         const first = this.container.querySelector('li:last-child')
@@ -42,7 +45,13 @@ export default class RoasterView {
         }
     }
     userLeft(key, old, v){
-        const remove = this.container.querySelector(`#${old.username}`)
+        const domId = this.#prepareForDomId(old.id)
+        let remove = null
+        try{
+            remove = this.container.querySelector(`#${domId}`)
+        }catch(e){
+            console.log(e)
+        }
         if(!remove) return
         this.container.removeChild(remove);
     }
