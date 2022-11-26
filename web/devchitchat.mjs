@@ -19,11 +19,11 @@ import MarkdownIt from 'markdown-it'
 import debug from'debug'
 
 import Db from '../lib/db.mjs'
-import Member from '../app/models/Member.mjs'
+import Member from '../models/Member.mjs'
 import GithubAuth from '../lib/GithubAuth.mjs'
 import TwitterAuth from '../lib/TwitterAuth.mjs'
 import SocketClient from '../lib/SocketClient.mjs'
-import Message from '../app/Models/message.mjs'
+import Message from '../Models/message.mjs'
 
 const md = new MarkdownIt({
 	html: true,
@@ -292,6 +292,9 @@ app.get('/welcome.:format?', async (req, res)=>{
 	const messages = await db.message.findToday('welcome')
 	messages.forEach(m => {
 		m.messages.forEach( message => {
+			if(message.text.indexOf('data:image') > -1){
+				message.text = `![](${message.text})`
+			}
 			message.text = md.render(message.text)
 		})
 	})

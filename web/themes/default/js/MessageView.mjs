@@ -60,10 +60,10 @@ export default class MessageView {
         if(this.model.text?.trim().length == 0) return
         this.model.from = this.model.to
         this.model.time = Date.now()
-        this.model.text = this.field.value
-        if(/^\[.*\]/.test(this.model.text)){
-            this.model.text = this.model.text.replace(/] /, "]\n")
-        }
+//        this.model.text = this.field.value
+        // if(/^\[.*\]/.test(this.model.text)){
+        //     this.model.text = this.model.text.replace(/] /, "]\n")
+        // }
         this.delegate.messageWasSubmitted(this.model)
         NotificationCenter.publish(Events.THIS_USER_HAS_SENT_A_MESSAGE, this, this.model)
         if(this.typingTimer ) this.stopTimer()

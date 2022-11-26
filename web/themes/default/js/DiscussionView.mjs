@@ -2,15 +2,6 @@ import { makeKeyValueObservable } from "../../../../lib/Observable.mjs"
 import {Events} from '../../../../lib/Models.mjs'
 import NotificationCenter from '../../../../lib/NotificationCenter.mjs'
 
-const imageUrlPattern = /https?:\/\/(?:[a-z\-]+\.)+[a-z]{2,6}(?:\/[^/#?]+)+\.(?:jpg|gif|png)/ig
-
-function hookForImages(message){
-    if(message.isHtml){
-        return message
-    }
-    message.text = message.text.replace(imageUrlPattern, '<img class="external" src="$&" />')
-    return message
-}
 function hookGithubResponse(message){
     try{
         var users = JSON.parse(message.text)
@@ -50,26 +41,11 @@ function hookGsearchResultClass(message){
     })
     return message
 }
-function includeHttp(url){
-    if(url.indexOf('http') > -1){
-        return url
-    }
-    return 'http://' + url
-}
-function hookForLinks(message){
-    if(imageUrlPattern.test(message.text)){
-        return message
-    }
-    const pattern = /((http|https|ftp|ftps)\:\/\/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(\/\S*)?)/g
-    const matches = pattern.exec(message.text)
 
-    // message.text = URI.withinString(message.text, function(url){
-    // 	return '<a href="' + includeHttp(url) + '" target="_blank">' + url + '</a>'
-    // })
-    return message
-}
 function hookForDataImage(message){
-    message.text = message.text.replace(/^data\:image(.*)/, '<img class="external" src="$&" />')
+    if(message.text.indexOf('data:image') > -1){
+        message.text = `![](${message.text})`
+    }
     return message
 }
 
@@ -85,8 +61,6 @@ class DiscussionView {
         this.#md = this.delegate.win.markdownit()
         this.hooks = [
             hookForDataImage,
-            hookForLinks,
-            hookForImages,
             hookGsearchResultClass,
             hookGithubResponse,
             hookListOfUsers,

@@ -1,5 +1,5 @@
 import moment from 'moment'
-import {makeKeyValueObservable} from '../../lib/Observable.mjs'
+import {makeKeyValueObservable} from '../lib/Observable.mjs'
 
 class User {
 	constructor(obj){
