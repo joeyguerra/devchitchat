@@ -98,7 +98,11 @@ export default class MessageView {
 
         this.typingTimestamp = new Date()
         if(!this.typingTimer) this.typingTimer = this.startTimer()
+        if(e.keyCode == 13 && e.shiftKey){
+            this.field.rows++
+        }
         if(e.keyCode == 13 && !e.shiftKey) {
+            this.field.rows = 1
             return this.sendMessage()
         }
         this.model.text = this.field.value.replace(/\n$/, '')
