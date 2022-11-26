@@ -214,7 +214,7 @@
 }
 .comment.fixed {
 	position: fixed;
-	top: 1rem;
+	top: 0;
 	right: 1rem;
 	left: 1rem;
 }

@@ -73,11 +73,6 @@ function hookForDataImage(message){
     return message
 }
 
-function hookForShowingXml(message){
-    message.text = message.text.replace(/</ig, '&lt').replace(/>/ig, '/&gt')
-    return message
-}
-
 class DiscussionView {
     #md
     constructor(container, model, delegate){
@@ -95,7 +90,6 @@ class DiscussionView {
             hookGsearchResultClass,
             hookGithubResponse,
             hookListOfUsers,
-            hookForShowingXml,
             message => {
                 message.text = this.#md.render(message.text)
                 return message
