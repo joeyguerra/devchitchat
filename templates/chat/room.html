@@ -32,14 +32,17 @@
 			{{#each messages}}
 			{{#each messages}}
 			{{#unless @index}}
-			<li class="sent">
+			<li class="sent {{selfOrOther from ../../user ../messages}}">
 				<time datetime="{{w3cFormat time}}">{{w3cFormat time}}</time>
+				<header>
+					<label>{{from.displayName}}</label>
+				</header>
 			</li>
 			<li class="{{selfOrOther from ../../user ../messages}}" data-from="{{ from.id }}">
 				<script>messagesFromServer.push({{{tojson this}}})</script>
 				<figure class="avatar">
 					<img class="img-circle" data-src="{{from.avatar}}" src="{{from.avatar}}" />
-					<figcaption>{{from.displayName}}</figcaption>
+					<figcaption></figcaption>
 				</figure>
 			{{/unless}}
 				<div class="message" data-count="{{@index}}">

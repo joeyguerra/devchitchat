@@ -3,6 +3,10 @@
 	margin: 1rem auto;
 	overflow: auto;
 }
+.discussion header {
+	font-size: var(--size-2);
+	margin-left: 4.5rem;
+}
 .discussion li{
 	position: relative;
 	max-inline-size: 97%;
@@ -14,9 +18,11 @@
 }
 .discussion .sent{
 	border: none;
-	height: 20px;
 	width: 100%;
 	background: none;
+}
+.discussion .sent header{
+	--_text-1: var(--gray-1);
 }
 .discussion .message time{
 	display: none;
@@ -63,6 +69,10 @@
 .roster li{
 	margin-bottom: 1em;
 }
+.discussion .self header {
+	text-align: right;
+	padding-right: 4.5rem;
+}
 
 .discussion .self .avatar{
 	right: 0;
@@ -73,7 +83,7 @@
 .discussion .message{
 	margin-left: 65px;
 	margin-right: 0;
-	margin-bottom: 1px;
+	margin-bottom: var(--size-1);
 	padding: var(--size-1);
 	text-align: left;
 	background: rgb(5, 160, 255);
