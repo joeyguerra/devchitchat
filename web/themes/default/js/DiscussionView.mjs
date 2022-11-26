@@ -89,7 +89,7 @@ class DiscussionView {
         if(!v.from) return
         const originalHeight = this.discussion.scrollHeight
         const lastMessage = this.container.querySelector(`.discussion li[data-from]`)
-        const fromId = lastMessage.getAttribute('data-from')
+        const fromId = lastMessage?.getAttribute('data-from')
 
         const elem = this.template.cloneNode(true)
         const messageElement = elem.querySelector('.message')
