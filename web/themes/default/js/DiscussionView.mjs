@@ -110,13 +110,11 @@ class DiscussionView {
             const messages = this.template.querySelector('.message').cloneNode(true)
             messages.setAttribute('data-count', '0')
             messages.querySelector('.text').innerHTML = v.text
-            messages.style.animation = '--animation-slide-in-up'
             lastMessage.insertBefore(messages, lastMessage.querySelector('.message'))
         }else{
             const first = this.discussion.querySelector('.discussion li:first-child')
             elem.querySelector('.text').innerHTML = v.text
             elem.querySelector('img').src = v.from.avatar
-            elem.style.animation = '--animation-slide-in-up'
             first.parentNode.insertBefore(elem, first.nextSibling)
         }
         this.lastTimeMessageWasSent = v.time
