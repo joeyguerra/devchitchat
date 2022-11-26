@@ -100,7 +100,7 @@
 	cursor: pointer;
 }
 
-.discussion .self {
+.discussion .self{
 	display: flex;
 	flex-direction: column;
 	align-items: flex-end;
@@ -112,10 +112,36 @@
 	color: var(--gray-0);
 	background: var(--blue-4);
 	border-radius: var(--radius-3);
-	margin-right: 45px;
+	margin-right: 50px;
 }
 
 /* the little flip */
+
+.discussion .self.preview:before {
+	content:"";
+	position:absolute;
+	z-index: -3;
+	bottom: 20px;
+	right: 40px;
+	height: 20px;
+	border-left: 20px solid var(--orange-6);
+	border-bottom-left-radius: 16px 14px;
+	transform: translate(0, -2px);
+}
+.discussion .self.preview:after {
+	content:"";
+	position:absolute;
+	z-index: -2;
+	bottom: 20px;
+	right: 5px;
+	width: 26px;
+	height: 25px;
+	background: var(--surface-1);
+	border-bottom-left-radius: 10px;
+	transform: translate(-19px, -2px);
+	clear: both;
+}
+
 .discussion .self > .message[data-count="0"]:before{
 	content:"";
 	position:absolute;
@@ -128,25 +154,25 @@
 	transform:translate(0, -2px);
 }
 .discussion .self > .message[data-count="0"]:after{
-	content:"";
-	position:absolute;
-	z-index:1;
-	bottom:-2px;
-	right:-56px;
-	width:26px;
-	height:20px;
+	content: "";
+	position: absolute;
+	z-index: 1;
+	bottom: -2px;
+	right: -56px;
+	width: 26px;
+	height: 22px;
 	background: var(--surface-1);
 	border-bottom-left-radius: 10px;
-	transform:translate(-30px, -2px);
+	transform: translate(-30px, -2px);
 	clear: both;
 }
 
 .discussion .self.preview .message,
-.discussion .self.preview .message:nth-child(2):before{
-	background: orange;
+.discussion .self.preview .message:before{
+	background: var(--orange-6);
 }
-.discussion .self.preview .message:nth-child(2):before{
-	border-left: 22px solid orange;
+.discussion .self.preview .message:before{
+	border-left: 22px solid var(--orange-6);
 }
 .discussion .self.preview small{
 	margin-right: 60px;
@@ -160,11 +186,11 @@
 /* The flip */
 .discussion .other > .message[data-count="0"]:before{
 	content:"";
-	position:absolute;
-	z-index:-1;
-	bottom:-2px;
-	left:-7px;
-	height:20px;
+	position: absolute;
+	z-index: -1;
+	bottom: -2px;
+	left: -7px;
+	height: 20px;
 	border-left:20px solid var(--surface-2);
 	border-bottom-right-radius: 16px 14px;
 	transform:translate(0, -2px);
@@ -172,11 +198,11 @@
 .discussion .other > .message[data-count="0"]:after{
 	content:"";
 	position:absolute;
-	z-index:3;
-	bottom:-2px;
-	left:4px;
-	width:26px;
-	height:20px;
+	z-index: 3;
+	bottom: -2px;
+	left: 5px;
+	width: 26px;
+	height: 20px;
 	background: var(--surface-1);
 	border-bottom-right-radius: 10px;
 	transform:translate(-31px, -2px);

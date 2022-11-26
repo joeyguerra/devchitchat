@@ -95,7 +95,6 @@ export default class MessageView {
     }
     keyup(e){
         // Use keyup so the preview will show the last character.
-
         this.typingTimestamp = new Date()
         if(!this.typingTimer) this.typingTimer = this.startTimer()
         if(e.keyCode == 13 && e.shiftKey){

@@ -16,7 +16,7 @@ export default class PreviewView {
         this.text.innerHTML = this.#md.render(v)
     }
     show(){
-        this.container.style.display = 'block'
+        this.container.style.display = ''
     }
     hide(){
         this.container.style.display = 'none'
