@@ -1,5 +1,5 @@
 
-import http from 'node:http'
+import http, { ServerResponse } from 'node:http'
 import fs from 'node:fs'
 import {dirname} from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -21,7 +21,6 @@ import debug from'debug'
 import Db from '../lib/db.mjs'
 import Member from '../models/Member.mjs'
 import GithubAuth from '../lib/GithubAuth.mjs'
-import TwitterAuth from '../lib/TwitterAuth.mjs'
 import SocketClient from '../lib/SocketClient.mjs'
 import Message from '../Models/message.mjs'
 
@@ -38,7 +37,7 @@ const config = Object.assign({
 		title: 'devchitchat'
 	},
 	domain: 'dev.local'
-}, process.env)
+}, process.env, {DATA_PATH: './data'})
 
 const db = new Db(config.DATA_PATH)
 let roster = {}
@@ -235,34 +234,6 @@ passport.use(new GithubAuth({
 	}
 }))
 
-passport.use(new TwitterAuth({
-	clientID: config.TWITTER_CLIENT_ID,
-	clientSecret: config.TWITTER_CLIENT_SECRET,
-	callbackURL: config.TWITTER_CALLBACK_URL
-}, async (accessToken, refreshToken, profile, done)=>{
-	try{
-		let member = await db.member.findOne({id: profile.id})
-		if(member){
-			return done(null, member)
-		}
-		member = new Member({
-			id: `twitter:${profile.id}`,
-			provider: profile.provider,
-			name: profile.displayName,
-			token: profile.id,
-			username: profile.username,
-			profileUrl: profile.profileUrl,
-			emails: profile.emails,
-			avatar: profile.photos.pop().value
-		})
-	
-		const doc = await db.newMemberWasSubmitted(member)
-		done(null, doc)	
-	}catch(e){
-		done(e)
-	}
-}))
-
 app.get(['/chat/:room.:format?', '/welcome.:format?'], (req, res, next)=>{
 	if(!req.isAuthenticated()) return next(401)
 	next()
@@ -275,9 +246,7 @@ app.get('/logout.:format?', (req, res, next)=>{
 })
 
 app.get('/login/github.:format?', passport.authenticate('github'))
-app.get('/login/twitter.:format?', passport.authenticate('twitter'))
-app.get('/github/callback', passport.authenticate('github', {successRedirect: '/welcome', failureRedirect: '/'}))
-app.get('/twitter/callback', passport.authenticate('twitter', {successRedirect: '/welcome', failureRedirect: '/'}))
+app.get('/auth/callbacks/github', passport.authenticate('github', {successRedirect: '/welcome', failureRedirect: '/'}))
 app.locals.title = 'DevChitChat'
 app.locals.description = 'Every day around 10 AM'
 app.locals.author = 'joey g'
@@ -347,6 +316,8 @@ function getRoomFromReferrer(socket){
 }
 
 io.use(function(socket, next){
+	socket.request.res = new ServerResponse(socket.request)
+
 	cookieParserFunction(socket.request, socket.request.res, ()=>{
 		cookieSessionFunction(socket.request, socket.request.res, ()=>{
 			var user = socket.request.session.passport ? socket.request.session.passport.user : null

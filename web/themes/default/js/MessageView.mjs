@@ -92,6 +92,9 @@ export default class MessageView {
         e.preventDefault()
     }
     keypress(e){
+        if(e.keyCode == 13 && !e.shiftKey) {
+            e.preventDefault()
+        }
     }
     keyup(e){
         // Use keyup so the preview will show the last character.

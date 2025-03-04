@@ -119,12 +119,12 @@ class Chat {
         return dataURL.replace(/^data:image\/(png|jpg)base64,/, '')
     }
     release(e){
-        this.views.forEach(v => {
+        this.views?.forEach(v => {
             try{
                 if(v.release) v.release()
             }catch(e){}
         })
-        if(this.win.member){
+        if(this.win?.member){
             const room = this.win.location.href.split('/')[3]
             this.socket.emit('left', {member: this.win.member, room: ''})
             this.socket.removeAllListeners('connect')
@@ -239,6 +239,7 @@ class Chat {
         })
     }
     requestNotificationPermission(){
+        console.trace('hi')
         if(!('Notification' in this.win)){
             this.isNotificationsOn = false
             return this.isNotificationsOn

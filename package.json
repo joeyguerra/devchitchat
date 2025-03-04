@@ -3,17 +3,16 @@
   "version": "0.0.21",
   "private": true,
   "scripts": {
-    "start": "node web/devchitchat",
-    "stop": "node web/devchitchat stop",
-    "dev": "env -S \"`cat .env | grep --invert-match \"#\" | xargs -0`\" node --watch ./web/devchitchat.mjs",
-    "start:local": "env -S \"$(cat .env | grep --invert-match \"#\" | xargs -0)\" node --watch ./web/devchitchat.mjs",
+    "start": "node web/devchitchat.mjs",
+    "stop": "node web/devchitchat.mjs stop",
+    "dev": "node --env-file=.env --watch ./web/devchitchat.mjs",
+    "start:local": "node --env-file=.env --watch ./web/devchitchat.mjs",
     "test": "node --test ./examples",
     "test:local": "node --watch"
   },
   "repository": "https://github.com/ijoey/devchitchat.git",
   "dependencies": {
     "body-parser": "^1.20.1",
-    "chilla": "joeyguerra/chilla#master",
     "classic-level": "^1.2.0",
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.6",
