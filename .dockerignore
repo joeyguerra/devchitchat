@@ -1,0 +1,17 @@
+npm-debug.log
+.DS_Store
+.git
+.gitignore
+.vscode
+charts
+bash-server
+examples
+mocks
+.env
+.gitignore
+.gitlab-ci.yml
+.hubot_history
+Dockerfile
+node_modules
+data
+.data
