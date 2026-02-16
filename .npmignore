@@ -1,6 +1,12 @@
-.github/
-charts/
-tests/
-DESIGN_DOC.md
+.github
+charts
+tests
 docker-build-k3d.sh
 Dockerfile
+.dockerignore
+data
+certs
+DESIGN.md
+PROMPT.md
+PROTOCOL.md
+scripts

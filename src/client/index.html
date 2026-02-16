@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang='en'>
+  <head>
+    <meta charset='utf-8'>
+    <meta
+      name='viewport'
+      content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
+    >
+    <title>hubot-chat-p2p</title>
+    <link rel='stylesheet' href='/styles.css'>
+  </head>
+  <body>
+    <div class='app'>
+      <header class='topbar'>
+        <div class='topbar-left'>
+          <button
+            id='mobile-menu-btn'
+            class='mobile-menu-btn'
+            aria-label='Toggle hubs and channels menu'
+            aria-controls='sidebar-menu'
+            aria-expanded='false'
+          >☰</button>
+          <div class='brand'>hubot chat p2p</div>
+        </div>
+        <div class='topbar-right'>
+          <div class='status' id='status'>disconnected</div>
+          <div class='user-pill' id='user-pill'>signed out</div>
+          <button id='logout-btn' class='logout-btn hidden' title='Sign out'>✕</button>
+        </div>
+      </header>
+
+      <section class='card auth' id='auth-card' aria-label='Auth'>
+        <div class='auth-tabs'>
+          <button id='signup-tab' class='auth-tab active'>Sign up</button>
+          <button id='signin-tab' class='auth-tab'>Sign in</button>
+        </div>
+
+        <!-- Sign up form (with invite token) -->
+        <div id='signup-form' class='auth-form active'>
+          <div>
+            <div class='label'>Invite token</div>
+            <input id='invite' placeholder='Paste invite token'>
+          </div>
+          <div>
+            <div class='label'>Handle / Username</div>
+            <input id='handle' placeholder='Choose your username'>
+          </div>
+          <div>
+            <div class='label'>Password</div>
+            <input id='signup-password' type='password' placeholder='Create a password'>
+          </div>
+          <button id='redeem' class='primary'>Sign up</button>
+          <div class='auth-hint' id='auth-hint'>Use the bootstrap code on first run</div>
+        </div>
+
+        <!-- Sign in form (with username/password) -->
+        <div id='signin-form' class='auth-form'>
+          <div>
+            <div class='label'>Handle / Username</div>
+            <input id='signin-handle' placeholder='Your username'>
+          </div>
+          <div>
+            <div class='label'>Password</div>
+            <input id='signin-password' type='password' placeholder='Your password'>
+          </div>
+          <button id='signin-btn' class='primary'>Sign in</button>
+          <div class='auth-hint' id='signin-hint'>Enter your credentials to sign in</div>
+        </div>
+
+        <div class='admin-tools'>
+          <button id='create-admin-invite'>Create invite</button>
+          <input id='admin-invite' readonly placeholder='Admin invite token appears here'>
+        </div>
+      </section>
+
+      <div class='toast' id='toast'></div>
+      <div id='mobile-diagnostics' class='mobile-diagnostics' aria-live='polite'></div>
+
+      <div class='layout'>
+        <aside id='sidebar-menu' class='card sidebar'>
+          <div class='section-title'>Hubs</div>
+          <ul id='hubs-list' class='hubs-list'></ul>
+          <div class='divider'></div>
+          <div id='admin-panel' class='admin-panel hidden'>
+            <div class='section-title'>Admin tools</div>
+            <div class='admin-tools vertical'>
+              <button id='create-hub-btn'>Create hub</button>
+              <button id='create-admin-invite-side'>Create invite</button>
+              <input id='admin-invite-side' readonly placeholder='Invite token appears here'>
+            </div>
+            <div class='divider'></div>
+          </div>
+
+        </aside>
+        <button
+          id='sidebar-resizer'
+          class='sidebar-resizer'
+          aria-label='Resize sidebar'
+          title='Drag to resize sidebar'
+        ></button>
+        <button id='sidebar-overlay' class='sidebar-overlay' aria-label='Close hubs and channels menu'></button>
+
+        <dialog id='create-hub-modal' class='modal'>
+          <div class='modal-content'>
+            <div class='modal-header'>
+              <h2>Create hub</h2>
+              <button id='close-create-hub-modal' class='icon-btn close-btn' aria-label='Close'>×</button>
+            </div>
+            <div class='modal-body'>
+              <div class='form-group'>
+                <label for='modal-hub-name'>Hub name</label>
+                <input id='modal-hub-name' placeholder='Enter hub name' autofocus>
+              </div>
+              <div class='form-group'>
+                <label for='modal-hub-description'>Description (optional)</label>
+                <input id='modal-hub-description' placeholder='Describe the hub purpose'>
+              </div>
+              <div class='form-group'>
+                <label for='modal-hub-visibility'>Visibility</label>
+                <select id='modal-hub-visibility'>
+                  <option value='public'>Public</option>
+                  <option value='restricted'>Restricted</option>
+                </select>
+              </div>
+            </div>
+            <div class='modal-footer'>
+              <button id='modal-hub-cancel'>Cancel</button>
+              <button id='modal-create-hub' class='primary'>Create</button>
+            </div>
+          </div>
+        </dialog>
+
+        <dialog id='create-room-modal' class='modal'>
+          <div class='modal-content'>
+            <div class='modal-header'>
+              <h2 id='channel-modal-title'>Create channel</h2>
+              <button id='close-create-room-modal' class='icon-btn close-btn' aria-label='Close'>×</button>
+            </div>
+            <div class='modal-body'>
+              <div class='form-group'>
+                <label for='modal-hub-select'>Hub</label>
+                <select id='modal-hub-select' disabled>
+                  <option value=''>Select a hub</option>
+                </select>
+              </div>
+              <div class='form-group'>
+                <label for='modal-room-name'>Channel name</label>
+                <input id='modal-room-name' placeholder='Enter channel name' autofocus>
+              </div>
+              <div class='form-group'>
+                <label for='modal-room-kind'>Channel type</label>
+                <select id='modal-room-kind'>
+                  <option value='text'>Text</option>
+                  <option value='voice'>Voice</option>
+                </select>
+              </div>
+              <div class='form-group'>
+                <label for='modal-room-visibility'>Visibility</label>
+                <select id='modal-room-visibility'>
+                  <option value='public'>Public</option>
+                  <option value='private'>Private</option>
+                </select>
+              </div>
+            </div>
+            <div class='modal-footer'>
+              <button id='modal-cancel'>Cancel</button>
+              <button id='modal-create-room' class='primary'>Create</button>
+            </div>
+          </div>
+        </dialog>
+
+        <dialog id='add-member-modal' class='modal'>
+          <div class='modal-content'>
+            <div class='modal-header'>
+              <h2>Add member</h2>
+              <button id='close-add-member-modal' class='icon-btn close-btn' aria-label='Close'>×</button>
+            </div>
+            <div class='modal-body'>
+              <div class='form-group'>
+                <label for='member-search-input'>Search for user</label>
+                <input id='member-search-input' placeholder='Search by handle...' autofocus>
+              </div>
+              <div id='member-search-results' class='member-search-results'></div>
+            </div>
+            <div class='modal-footer'>
+              <button id='close-add-member-btn'>Close</button>
+            </div>
+          </div>
+        </dialog>
+
+        <section class='card chat'>
+          <div class='chat-header'>
+            <div>
+              <div class='label'>Channel</div>
+              <div id='active-room' class='room-name'>None</div>
+            </div>
+            <div class='call-controls'>
+              <button id='start-call' class='icon-control voice-only' aria-label='Mute or unmute microphone' title='Mute or unmute microphone'>🎤</button>
+              <button id='toggle-media' class='icon-control voice-only' aria-label='Toggle camera' title='Toggle camera'>📷</button>
+              <button id='share-screen' class='icon-control voice-only' aria-label='Toggle screen share' title='Toggle screen share'>🖥</button>
+              <button id='hangup-call'>Hang up</button>
+              <button id='add-member'>Add member</button>
+              <button id='edit-channel-btn' class='icon-control' aria-label='Edit channel settings' title='Edit channel settings'>⚙</button>
+            </div>
+          </div>
+          <div class='voice-hint' id='voice-hint'>Select a voice channel to auto-join with your mic</div>
+          <div id='streams' class='streams media-stage'></div>
+          <div id='streams-empty' class='streams-empty'>No live streams yet</div>
+          <button id='text-chat-toggle' class='text-chat-toggle' aria-expanded='false' aria-controls='text-chat-drawer'><</button>
+          <section id='text-chat-drawer' class='card text-chat-drawer'>
+            <div class='drawer-header'>
+              <div class='section-title'>Text chat</div>
+              <button id='text-chat-close' class='icon-btn' aria-label='Close text chat'>×</button>
+            </div>
+            <div class='search-row'>
+              <input id='search-input' placeholder='Search this channel'>
+              <button id='search-btn'>Search</button>
+            </div>
+            <div id='search-results' class='search-results'></div>
+            <div id='messages' class='messages'></div>
+            <div class='composer'>
+              <textarea id='message-input' placeholder='Write a message' rows='2'></textarea>
+              <button id='send-message' class='primary'>Send</button>
+            </div>
+          </section>
+        </section>
+
+      </div>
+    </div>
+
+    <script type='module' src='/app.mjs'></script>
+  </body>
+</html>
