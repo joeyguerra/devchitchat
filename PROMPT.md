@@ -1,6 +1,6 @@
-# Build: hubot-chat-p2p — a small Discord alternative built on Hubot
+# Build: devchitchat — a small chat app. p2p video and screensharing.
 
-You are a senior Node.js + realtime systems engineer. Build a Discord alternative for ~10 users (gamers) that runs as **one Node process** (a Hubot instance) but enables **peer-to-peer media** between users.
+You are a senior Node.js + realtime systems engineer. Build a Discord alternative for ~10 users (gamers) that runs as **one Node process** but enables **peer-to-peer media** between users.
 
 ## Values (non-negotiable)
 - Decentralized / peer-to-peer by default
@@ -20,7 +20,7 @@ You are a senior Node.js + realtime systems engineer. Build a Discord alternativ
 - mobile-first and responsive design
 
 ## Deliverable
-A repo named `hubot-chat-p2p` that can be run locally and used by ~10 gamers as a Discord alternative with:
+A repo named `devchitchat` that can be run locally and used by ~10 gamers as a Discord alternative with:
 - public rooms
 - ad-hoc groups
 - text chat

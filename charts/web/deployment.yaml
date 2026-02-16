@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: devchitchat-web
-        image: local/devchitchat-web:0.1.2
+        image: local/devchitchat-web:0.1.8
         imagePullPolicy: IfNotPresent
         env:
         - name: PORT

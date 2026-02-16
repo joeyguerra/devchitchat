@@ -1,6 +1,6 @@
-# hubot-chat-p2p
+# devchitchat
 
-A small, local-first, peer-to-peer chat built on Hubot. The Node process is a Hubot instance and acts as the control plane and message store, while media is intended to be WebRTC P2P.
+A small chat app. p2p video and screen sharing. The Node process acts as the control plane and message store, while media is intended to be WebRTC P2P.
 
 Status: PASS 2 in progress. This build includes WebRTC signaling and a minimal browser client for calls and screen sharing.
 

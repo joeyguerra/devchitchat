@@ -313,7 +313,7 @@ export class ChatServer {
       reply_to: msg.id,
       ok: true,
       body: {
-        server: { name: 'hubot-chat-p2p', ver: '0.1.0' },
+        server: { name: 'devchitchat', ver: '0.1.0' },
         session: {
           authenticated: !!session,
           user: session ? session.user : null,

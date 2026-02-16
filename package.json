@@ -1,9 +1,9 @@
 {
-  "name": "hubot-chat-p2p",
-  "version": "0.1.2",
+  "name": "devchitchat",
+  "version": "0.1.8",
   "private": true,
   "type": "module",
-  "description": "A small local-first P2P chat built on Hubot",
+  "description": "A small chat app. p2p video and screenshare.",
   "scripts": {
     "start": "node --watch src/server/index.mjs",
     "test": "node --test",

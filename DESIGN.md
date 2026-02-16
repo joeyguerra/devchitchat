@@ -1,4 +1,4 @@
-hubot-chat-p2p — A small, local-first, peer-to-peer Discord alternative built on Hubot
+devchitchat — A small chat app.
 
 Purpose
 Build a chat app for ~10 gamers that runs as a single Node process (a Hubot instance) and provides:

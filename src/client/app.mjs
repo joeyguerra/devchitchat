@@ -68,7 +68,6 @@ const dom = {
   textChatDrawer: qs('#text-chat-drawer'),
   adminInvite: qs('#admin-invite'),
   adminInviteSide: qs('#admin-invite-side'),
-  createAdminInviteBtn: qs('#create-admin-invite'),
   createAdminInviteSideBtn: qs('#create-admin-invite-side'),
   createHubBtn: qs('#create-hub-btn'),
   createHubModal: qs('#create-hub-modal'),
@@ -495,7 +494,7 @@ wsClient = new WsClient({
   },
   onOpen: () => {
     send('hello', {
-      client: { name: 'hubot-chat-p2p-web', ver: '0.1.0', platform: 'browser' },
+      client: { name: 'devchitchat-web', ver: '0.1.0', platform: 'browser' },
       resume: { session_token: state.sessionToken }
     })
     flushPendingAuthRequest()
@@ -630,7 +629,6 @@ const handleChannelListResult = (msg) => {
 }
 
 const handleAdminInvite = (msg) => {
-  dom.adminInvite.value = msg.body.invite_token
   dom.adminInviteSide.value = msg.body.invite_token
 }
 
@@ -1659,7 +1657,7 @@ const setupEventListeners = () => {
   const createAdminInvite = () => {
     send('admin.invite_create', { ttl_ms: 24 * 60 * 60 * 1000, max_uses: 1, note: 'web invite' })
   }
-  dom.createAdminInviteBtn.addEventListener('click', createAdminInvite)
+
   dom.createAdminInviteSideBtn.addEventListener('click', createAdminInvite)
 
   // Hub creation listeners

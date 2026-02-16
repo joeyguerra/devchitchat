@@ -1,4 +1,4 @@
-# PROTOCOL.md — hubot-chat-p2p
+# PROTOCOL.md — devchitchat
 
 This document defines the **WebSocket control-plane protocol** between browser clients and the Hubot (Node) server.
 
@@ -94,7 +94,7 @@ Sent immediately on connect.
   "ts": 1730000000000,
   "body": {
     "client": {
-      "name": "hubot-chat-p2p-web",
+      "name": "devchitchat-web",
       "ver": "0.1.0",
       "platform": "browser",
       "ua": "optional user agent"
@@ -117,7 +117,7 @@ hello_ack (server → client)
   "ok": true,
   "server_ts": 1730000000123,
   "body": {
-    "server": { "name": "hubot-chat-p2p", "ver": "0.1.0" },
+    "server": { "name": "devchitchat", "ver": "0.1.0" },
     "session": {
       "authenticated": false,
       "user": null,
