@@ -52,14 +52,14 @@ npm test
 
 ## HTTPS on LAN (self-signed)
 
-To run on `https://192.168.254.199:3000`, generate a cert whose SAN includes that IP:
+To run on `https://joey-mini.local:3000`, generate a cert whose SAN includes that IP:
 
 ```bash
 openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 365 \
   -keyout certs/dev-key.pem \
   -out certs/dev-cert.pem \
-  -subj "/CN=192.168.254.199" \
-  -addext "subjectAltName = IP:192.168.254.199"
+  -subj "/CN=joey-mini.local" \
+  -addext "subjectAltName = IP:192.168.222.222"
 ```
 
 Start server with TLS:
