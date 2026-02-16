@@ -1,13 +1,16 @@
 {
   "name": "hubot-chat-p2p",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "description": "A small local-first P2P chat built on Hubot",
   "scripts": {
     "start": "node --watch src/server/index.mjs",
     "test": "node --test",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "docker-build": "./docker-build-k3d.sh",
+    "local-deploy": "kubectl config use-context ${KUBE_CONTEXT:-k3d-local} && kubectl apply -f charts/web/deployment.yaml -n ${KUBE_NAMESPACE:-default}",
+    "push": "node --run docker-build && node --run local-deploy"
   },
   "dependencies": {
     "ws": "^8.17.0"
