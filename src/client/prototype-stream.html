@@ -1,0 +1,1991 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prototype Stream</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --line: #30363d;
+      --accent: #2ea043;
+      --warn: #f0883e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top left, #1f2937, var(--bg) 60%);
+      color: var(--text);
+      font: 14px/1.4 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+    }
+    .layout {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 16px;
+    }
+    .panel {
+      background: linear-gradient(180deg, #1b2230, var(--panel));
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .controls h1 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+    .hint {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .field { margin: 10px 0; }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #0e1622;
+      color: var(--text);
+    }
+    button {
+      background: linear-gradient(180deg, #238636, #1b7f34);
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: linear-gradient(180deg, #4a5568, #3c4859);
+    }
+    button.warn {
+      background: linear-gradient(180deg, #b45309, #92400e);
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      min-height: 40px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: pre-line;
+    }
+    .debug-log {
+      margin-top: 10px;
+      max-height: 140px;
+      overflow: auto;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      display: none;
+    }
+    .viewer {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .slots {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .screen-wrap {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+      min-height: 240px;
+      position: relative;
+      display: grid;
+      place-items: center;
+    }
+    #screen {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      background: #000;
+    }
+    #screenVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: none;
+      background: #000;
+    }
+    .slot-title {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      z-index: 2;
+      font-size: 11px;
+      color: #d1d5db;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+      padding: 2px 8px;
+    }
+    #cameraVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: none;
+      background: #000;
+    }
+    #cameraImage {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: none;
+      background: #000;
+    }
+    .empty {
+      position: absolute;
+      color: #9ca3af;
+      font-size: 13px;
+      pointer-events: none;
+    }
+    .meta {
+      display: flex;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    @media (max-width: 880px) {
+      .layout { grid-template-columns: 1fr; }
+      .slots { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="layout">
+    <section class="panel controls">
+      <h1>WS Stream Prototype</h1>
+      <p class="hint">Single broadcaster + multiple viewers per channel.</p>
+
+      <div class="field">
+        <label for="role">Role</label>
+        <select id="role">
+          <option value="viewer">Viewer</option>
+          <option value="broadcaster">Broadcaster</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="channel">Channel</label>
+        <select id="channel">
+          <option value="general">general</option>
+          <option value="test">test</option>
+          <option value="fun">fun</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="fps">Snapshot interval (ms)</label>
+        <input id="fps" type="number" min="50" max="1000" step="10" value="100">
+      </div>
+      <div class="field">
+        <label for="micSource">Microphone</label>
+        <select id="micSource">
+          <option value="default">System default</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="cameraMode">Camera Transport</label>
+        <select id="cameraMode">
+          <option value="recorder">MediaRecorder (webm)</option>
+          <option value="jpeg">JPEG snapshots (low latency)</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <button id="disconnect" class="secondary">Disconnect</button>
+        <button id="startScreenShare">Share Screen</button>
+      </div>
+      <div class="row">
+        <button id="startCameraStream">Stream Video</button>
+        <button id="stopShare" class="warn">Stop Share</button>
+      </div>
+      <div class="field">
+        <label><input id="debugMode" type="checkbox"> Debug mode</label>
+      </div>
+
+      <div id="status" class="status">Disconnected</div>
+      <div id="debugLog" class="status debug-log"></div>
+    </section>
+
+    <section class="panel viewer">
+      <div class="slots">
+        <div class="screen-wrap">
+          <div class="slot-title">Screen Share</div>
+          <video id="screenVideo" autoplay playsinline muted></video>
+          <img id="screen" alt="Remote screen stream">
+          <div id="screenEmpty" class="empty">No screen stream</div>
+        </div>
+        <div class="screen-wrap">
+          <div class="slot-title">Camera Video</div>
+          <video id="cameraVideo" autoplay playsinline muted></video>
+          <img id="cameraImage" alt="Remote camera stream">
+          <div id="cameraEmpty" class="empty">No camera stream</div>
+        </div>
+      </div>
+      <div class="meta">
+        <div id="statsFrames">Frames: 0</div>
+        <div id="statsAudio">Audio chunks: 0</div>
+        <div id="statsLatencyCamera">Camera latency: 0ms</div>
+        <div id="statsLatencyScreen">Screen latency: 0ms</div>
+        <div id="statsPlayback">Camera playback: mode=n/a | q=0 | delay=0ms | avg=0ms</div>
+        <div id="statsNet">Tier: normal</div>
+      </div>
+    </section>
+  </main>
+
+  <audio id="audioSink" preload="none"></audio>
+
+  <script type="module">
+    class StreamProtocol {
+      static join(role, stream) {
+        return { t: 'join', body: { role, stream } }
+      }
+    }
+
+    class MediaFrameCodec {
+      static VIDEO = 1
+      static AUDIO = 2
+      static SOURCE_UNKNOWN = 0
+      static SOURCE_SCREEN = 1
+      static SOURCE_CAMERA = 2
+      static encoder = new TextEncoder()
+      static decoder = new TextDecoder()
+
+      static async encode({ kind, source = 0, seq, ts, mime, blob }) {
+        const mimeBytes = this.encoder.encode(mime || '')
+        const payload = new Uint8Array(await blob.arrayBuffer())
+        const headerSize = 16 + mimeBytes.length
+        const frame = new Uint8Array(headerSize + payload.length)
+        const view = new DataView(frame.buffer)
+        view.setUint8(0, kind)
+        view.setUint8(1, source)
+        view.setUint32(2, seq, false)
+        view.setFloat64(6, ts, false)
+        view.setUint16(14, mimeBytes.length, false)
+        frame.set(mimeBytes, 16)
+        frame.set(payload, headerSize)
+        return frame.buffer
+      }
+
+      static decode(buffer) {
+        const frame = new Uint8Array(buffer)
+        if (frame.length < 16) return null
+        const view = new DataView(frame.buffer, frame.byteOffset, frame.byteLength)
+        const kind = view.getUint8(0)
+        const source = view.getUint8(1)
+        const seq = view.getUint32(2, false)
+        const ts = view.getFloat64(6, false)
+        const mimeLen = view.getUint16(14, false)
+        const headerSize = 16 + mimeLen
+        if (frame.length < headerSize) return null
+        const mime = this.decoder.decode(frame.slice(16, headerSize))
+        const payload = frame.slice(headerSize)
+        return { kind, source, seq, ts, mime, payload }
+      }
+    }
+
+    class WsTransport {
+      constructor(pathname, onTextMessage, onBinaryMessage, onStatus) {
+        this.pathname = pathname
+        this.onTextMessage = onTextMessage
+        this.onBinaryMessage = onBinaryMessage
+        this.onStatus = onStatus
+        this.ws = null
+      }
+
+      connect() {
+        if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+          return
+        }
+        const protocol = location.protocol === 'https:' ? 'wss' : 'ws'
+        const url = `${protocol}://${location.host}${this.pathname}`
+        this.ws = new WebSocket(url)
+        this.ws.binaryType = 'arraybuffer'
+        this.ws.addEventListener('open', () => this.onStatus('connected'))
+        this.ws.addEventListener('close', () => this.onStatus('disconnected'))
+        this.ws.addEventListener('error', () => this.onStatus('error'))
+        this.ws.addEventListener('message', (event) => {
+          if (typeof event.data === 'string') {
+            let msg = null
+            try {
+              msg = JSON.parse(event.data)
+            } catch {
+              return
+            }
+            this.onTextMessage(msg)
+            return
+          }
+          this.onBinaryMessage(event.data)
+        })
+      }
+
+      sendJson(msg) {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return false
+        this.ws.send(JSON.stringify(msg))
+        return true
+      }
+
+      sendBinary(payload) {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return false
+        this.ws.send(payload)
+        return true
+      }
+
+      close() {
+        this.ws?.close()
+      }
+
+      bufferedAmount() {
+        return this.ws?.bufferedAmount || 0
+      }
+
+      isOpen() {
+        return this.ws?.readyState === WebSocket.OPEN
+      }
+
+      isConnecting() {
+        return this.ws?.readyState === WebSocket.CONNECTING
+      }
+    }
+
+    class AudioPlaybackQueue {
+      constructor(audioElement) {
+        this.audio = audioElement
+        this.queue = []
+        this.playing = false
+      }
+
+      enqueueBlob(blob) {
+        this.queue.push(URL.createObjectURL(blob))
+        this.playNext()
+      }
+
+      async playNext() {
+        if (this.playing || this.queue.length === 0) return
+        this.playing = true
+        const url = this.queue.shift()
+        this.audio.src = url
+        this.audio.onended = null
+        this.audio.onerror = null
+        const finalize = () => {
+          URL.revokeObjectURL(url)
+          this.playing = false
+          this.playNext()
+        }
+        try {
+          await this.audio.play()
+          this.audio.onended = finalize
+          this.audio.onerror = finalize
+        } catch {
+          finalize()
+        }
+      }
+
+      reset() {
+        this.queue.splice(0)
+        this.playing = false
+        this.audio.onended = null
+        this.audio.onerror = null
+        this.audio.pause()
+        this.audio.removeAttribute('src')
+      }
+    }
+
+    class VideoPlaybackQueue {
+      constructor(videoElement, { latestFrameWins = false, onPlaybackStart = null } = {}) {
+        this.video = videoElement
+        this.queue = []
+        this.playing = false
+        this.latestFrameWins = latestFrameWins
+        this.onPlaybackStart = onPlaybackStart
+      }
+
+      enqueueBlob(blob) {
+        const nextItem = {
+          url: URL.createObjectURL(blob),
+          enqueuedAt: Date.now()
+        }
+        if (this.latestFrameWins && this.playing) {
+          while (this.queue.length > 0) {
+            const dropped = this.queue.shift()
+            URL.revokeObjectURL(dropped.url)
+          }
+          this.queue.push(nextItem)
+          return
+        }
+        this.queue.push(nextItem)
+        this.playNext()
+      }
+
+      setOnPlaybackStart(callback) {
+        this.onPlaybackStart = callback
+      }
+
+      getQueueDepth() {
+        return this.queue.length
+      }
+
+      async playNext() {
+        if (this.playing || this.queue.length === 0) return
+        this.playing = true
+        const item = this.queue.shift()
+        this.video.src = item.url
+        this.video.style.display = 'block'
+        this.video.onended = null
+        this.video.onerror = null
+        const finalize = () => {
+          URL.revokeObjectURL(item.url)
+          this.playing = false
+          this.playNext()
+        }
+        try {
+          await this.video.play()
+          this.onPlaybackStart?.({
+            delayMs: Math.max(0, Date.now() - item.enqueuedAt),
+            mode: 'blob'
+          })
+          this.video.onended = finalize
+          this.video.onerror = finalize
+        } catch {
+          finalize()
+        }
+      }
+
+      reset() {
+        while (this.queue.length > 0) {
+          const item = this.queue.shift()
+          URL.revokeObjectURL(item.url)
+        }
+        this.playing = false
+        this.video.pause()
+        this.video.removeAttribute('src')
+        this.video.style.display = 'none'
+      }
+
+      clearPending() {
+        while (this.queue.length > 0) {
+          const item = this.queue.shift()
+          URL.revokeObjectURL(item.url)
+        }
+        this.playing = false
+        this.video.onended = null
+        this.video.onerror = null
+      }
+    }
+
+    class CameraMsePlayer {
+      constructor(videoElement, onDebug) {
+        this.video = videoElement
+        this.onDebug = onDebug
+        this.mediaSource = null
+        this.sourceBuffer = null
+        this.objectUrl = null
+        this.mime = null
+        this.pending = []
+        this.maxPendingChunks = 60
+        this.disabled = false
+        this.lastTrimAt = 0
+        this.pendingEnqueueTs = []
+        this.firstMseEnqueueAt = 0
+        this.waitingForFirstPlayback = false
+        this.onPlaybackStart = null
+        this.video.addEventListener('playing', () => this.onVideoPlaying())
+      }
+
+      setOnPlaybackStart(callback) {
+        this.onPlaybackStart = callback
+      }
+
+      getPendingDepth() {
+        return this.pending.length
+      }
+
+      onVideoPlaying() {
+        if (!this.waitingForFirstPlayback || !this.firstMseEnqueueAt) {
+          return
+        }
+        this.onPlaybackStart?.({
+          delayMs: Math.max(0, Date.now() - this.firstMseEnqueueAt),
+          mode: 'mse'
+        })
+        this.waitingForFirstPlayback = false
+        this.firstMseEnqueueAt = 0
+      }
+
+      canUseMime(mime) {
+        return !this.disabled && Boolean(mime) && typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported(mime)
+      }
+
+      normalizeMime(mime) {
+        return String(mime || '').replace(/;\s*codecs=/i, ';codecs=')
+      }
+
+      disable(reason) {
+        if (this.disabled) return
+        this.onDebug?.(`mse disabled: ${reason}`)
+        this.disabled = true
+        this.reset({ keepDisabled: true })
+      }
+
+      appendChunk(payload, mime) {
+        const normalizedMime = this.normalizeMime(mime)
+        if (this.disabled) {
+          return false
+        }
+        if (!this.canUseMime(normalizedMime)) {
+          this.onDebug?.(`mse unsupported mime: ${normalizedMime}`)
+          return false
+        }
+        if (!this.mediaSource || !this.sourceBuffer || this.mime !== normalizedMime) {
+          this.init(normalizedMime)
+        }
+        const bytes = payload instanceof Uint8Array ? payload : new Uint8Array(payload)
+        if (this.pending.length >= this.maxPendingChunks) {
+          this.pending.shift()
+          this.pendingEnqueueTs.shift()
+          this.onDebug?.('mse pending overflow: dropping oldest chunk')
+        }
+        const now = Date.now()
+        if (!this.firstMseEnqueueAt) {
+          this.firstMseEnqueueAt = now
+          this.waitingForFirstPlayback = true
+        }
+        this.pending.push(bytes)
+        this.pendingEnqueueTs.push(now)
+        this.flush()
+        return true
+      }
+
+      init(mime) {
+        this.reset()
+        this.mime = mime
+        this.mediaSource = new MediaSource()
+        this.objectUrl = URL.createObjectURL(this.mediaSource)
+        this.video.src = this.objectUrl
+        this.video.style.display = 'block'
+        this.mediaSource.addEventListener('error', () => this.disable('mediaSource error'))
+        this.mediaSource.addEventListener('sourceopen', () => {
+          try {
+            this.sourceBuffer = this.mediaSource.addSourceBuffer(this.mime)
+            this.sourceBuffer.mode = 'sequence'
+            this.sourceBuffer.addEventListener('updateend', () => this.flush())
+            this.sourceBuffer.addEventListener('error', () => this.disable('sourceBuffer error'))
+            this.flush()
+          } catch (error) {
+            this.disable(`mse init error: ${error.message || 'unknown'}`)
+          }
+        }, { once: true })
+      }
+
+      flush() {
+        if (!this.sourceBuffer || this.sourceBuffer.updating) {
+          return
+        }
+        if (!this.mediaSource || this.mediaSource.readyState !== 'open') {
+          this.disable(`mediaSource not open (${this.mediaSource?.readyState || 'none'})`)
+          return
+        }
+        // Keep a short rolling buffer to reduce Quota/eviction stalls.
+        // Only trim when there is actual old data before trimTo and at most ~2x/sec.
+        const now = Date.now()
+        if (this.video.currentTime > 12 && this.sourceBuffer.buffered.length > 0 && now - this.lastTrimAt > 500) {
+          const trimTo = this.video.currentTime - 8
+          const bufferedStart = this.sourceBuffer.buffered.start(0)
+          if (bufferedStart + 0.25 < trimTo) {
+            try {
+              this.sourceBuffer.remove(0, trimTo)
+              this.lastTrimAt = now
+              this.onDebug?.(`mse trimmed buffered to ${trimTo.toFixed(2)}s`)
+              return
+            } catch {}
+          }
+        }
+        const chunk = this.pending.shift()
+        const chunkEnqueuedAt = this.pendingEnqueueTs.shift() || Date.now()
+        if (!chunk) {
+          return
+        }
+        try {
+          this.sourceBuffer.appendBuffer(chunk)
+          if (this.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+            this.onPlaybackStart?.({
+              delayMs: Math.max(0, Date.now() - chunkEnqueuedAt),
+              mode: 'mse'
+            })
+            this.waitingForFirstPlayback = false
+            this.firstMseEnqueueAt = 0
+          }
+          this.video.play().catch(() => {})
+        } catch (error) {
+          this.disable(`mse append error: ${error.message || 'unknown'}`)
+        }
+      }
+
+      reset({ keepDisabled = false } = {}) {
+        this.pending.splice(0)
+        this.pendingEnqueueTs.splice(0)
+        this.firstMseEnqueueAt = 0
+        this.waitingForFirstPlayback = false
+        if (this.sourceBuffer) {
+          try {
+            if (this.sourceBuffer.updating) this.sourceBuffer.abort()
+          } catch {}
+        }
+        this.sourceBuffer = null
+        if (this.mediaSource) {
+          try {
+            if (this.mediaSource.readyState === 'open') this.mediaSource.endOfStream()
+          } catch {}
+        }
+        this.mediaSource = null
+        this.mime = null
+        this.video.pause()
+        this.video.removeAttribute('src')
+        if (this.objectUrl) {
+          URL.revokeObjectURL(this.objectUrl)
+          this.objectUrl = null
+        }
+        this.video.style.display = 'none'
+        if (!keepDisabled) {
+          this.disabled = false
+        }
+      }
+    }
+
+    class AudioMsePlayer {
+      constructor(audioElement, onDebug) {
+        this.audio = audioElement
+        this.onDebug = onDebug
+        this.mediaSource = null
+        this.sourceBuffer = null
+        this.objectUrl = null
+        this.mime = null
+        this.pending = []
+        this.maxPendingChunks = 24
+        this.disabled = false
+        this.lastTrimAt = 0
+      }
+
+      normalizeMime(mime) {
+        return String(mime || '').replace(/;\s*codecs=/i, ';codecs=')
+      }
+
+      canUseMime(mime) {
+        return !this.disabled && Boolean(mime) && typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported(mime)
+      }
+
+      disable(reason) {
+        if (this.disabled) return
+        this.onDebug?.(`audio mse disabled: ${reason}`)
+        this.disabled = true
+        this.reset({ keepDisabled: true })
+      }
+
+      appendChunk(payload, mime) {
+        const normalizedMime = this.normalizeMime(mime)
+        if (!this.canUseMime(normalizedMime)) {
+          this.onDebug?.(`audio mse unsupported mime: ${normalizedMime}`)
+          return false
+        }
+        if (!this.mediaSource || !this.sourceBuffer || this.mime !== normalizedMime) {
+          this.init(normalizedMime)
+        }
+        const bytes = payload instanceof Uint8Array ? payload : new Uint8Array(payload)
+        if (this.pending.length >= this.maxPendingChunks) {
+          this.pending.shift()
+          this.onDebug?.('audio mse pending overflow: dropping oldest chunk')
+        }
+        this.pending.push(bytes)
+        this.flush()
+        return true
+      }
+
+      init(mime) {
+        this.reset()
+        this.mime = mime
+        this.mediaSource = new MediaSource()
+        this.objectUrl = URL.createObjectURL(this.mediaSource)
+        this.audio.src = this.objectUrl
+        this.mediaSource.addEventListener('error', () => this.disable('mediaSource error'))
+        this.mediaSource.addEventListener('sourceopen', () => {
+          try {
+            this.sourceBuffer = this.mediaSource.addSourceBuffer(this.mime)
+            this.sourceBuffer.mode = 'sequence'
+            this.sourceBuffer.addEventListener('updateend', () => this.flush())
+            this.sourceBuffer.addEventListener('error', () => this.disable('sourceBuffer error'))
+            this.flush()
+          } catch (error) {
+            this.disable(`mse init error: ${error.message || 'unknown'}`)
+          }
+        }, { once: true })
+      }
+
+      flush() {
+        if (!this.sourceBuffer || this.sourceBuffer.updating) {
+          return
+        }
+        if (!this.mediaSource || this.mediaSource.readyState !== 'open') {
+          return
+        }
+        const now = Date.now()
+        if (this.sourceBuffer.buffered.length > 0 && now - this.lastTrimAt > 300) {
+          const bufferedEnd = this.sourceBuffer.buffered.end(this.sourceBuffer.buffered.length - 1)
+          const bufferedStart = this.sourceBuffer.buffered.start(0)
+          const keepFrom = Math.max(0, bufferedEnd - 1.2)
+          if (bufferedStart + 0.2 < keepFrom) {
+            try {
+              this.sourceBuffer.remove(0, keepFrom)
+              this.lastTrimAt = now
+              return
+            } catch {}
+          }
+        }
+        const chunk = this.pending.shift()
+        if (!chunk) {
+          return
+        }
+        try {
+          this.sourceBuffer.appendBuffer(chunk)
+          this.audio.play().catch(() => {})
+          this.chaseLiveEdge()
+        } catch (error) {
+          this.disable(`mse append error: ${error.message || 'unknown'}`)
+        }
+      }
+
+      chaseLiveEdge() {
+        if (!this.sourceBuffer || this.sourceBuffer.buffered.length === 0) {
+          return
+        }
+        try {
+          const end = this.sourceBuffer.buffered.end(this.sourceBuffer.buffered.length - 1)
+          const lag = end - this.audio.currentTime
+          if (lag > 0.45) {
+            this.audio.currentTime = Math.max(0, end - 0.2)
+          }
+        } catch {}
+      }
+
+      reset({ keepDisabled = false } = {}) {
+        this.pending.splice(0)
+        this.lastTrimAt = 0
+        if (this.sourceBuffer) {
+          try {
+            if (this.sourceBuffer.updating) this.sourceBuffer.abort()
+          } catch {}
+        }
+        this.sourceBuffer = null
+        if (this.mediaSource) {
+          try {
+            if (this.mediaSource.readyState === 'open') this.mediaSource.endOfStream()
+          } catch {}
+        }
+        this.mediaSource = null
+        this.mime = null
+        this.audio.pause()
+        this.audio.removeAttribute('src')
+        if (this.objectUrl) {
+          URL.revokeObjectURL(this.objectUrl)
+          this.objectUrl = null
+        }
+        if (!keepDisabled) {
+          this.disabled = false
+        }
+      }
+    }
+
+    class AudioJitterBuffer {
+      constructor(audioQueue, { targetPackets = 3, maxHoldPackets = 8 } = {}) {
+        this.audioQueue = audioQueue
+        this.targetPackets = targetPackets
+        this.maxHoldPackets = maxHoldPackets
+        this.packets = new Map()
+        this.expectedSeq = null
+        this.started = false
+        this.timer = null
+        this.dropped = 0
+      }
+
+      enqueue(packet) {
+        if (this.expectedSeq !== null && packet.seq < this.expectedSeq) {
+          return
+        }
+        this.packets.set(packet.seq, packet)
+        if (this.expectedSeq === null) {
+          this.expectedSeq = packet.seq
+        }
+        if (!this.timer) {
+          this.timer = setInterval(() => this.flush(), 30)
+        }
+      }
+
+      flush() {
+        if (this.expectedSeq === null) return
+        if (!this.started && this.packets.size < this.targetPackets) return
+        this.started = true
+
+        let progressed = false
+        while (this.packets.has(this.expectedSeq)) {
+          const packet = this.packets.get(this.expectedSeq)
+          this.packets.delete(this.expectedSeq)
+          this.audioQueue.enqueueBlob(new Blob([packet.payload], { type: packet.mime || 'audio/webm;codecs=opus' }))
+          this.expectedSeq += 1
+          progressed = true
+        }
+
+        if (!progressed && this.packets.size >= this.maxHoldPackets) {
+          this.expectedSeq += 1
+          this.dropped += 1
+        }
+      }
+
+      reset() {
+        this.packets.clear()
+        this.expectedSeq = null
+        this.started = false
+        this.dropped = 0
+        if (this.timer) {
+          clearInterval(this.timer)
+          this.timer = null
+        }
+      }
+    }
+
+    class BroadcasterController {
+      constructor(transport, getConfig, setStatus, setNetStats, onDebug) {
+        this.transport = transport
+        this.getConfig = getConfig
+        this.setStatus = setStatus
+        this.setNetStats = setNetStats
+        this.onDebug = onDebug
+        this.screenStream = null
+        this.cameraStream = null
+        this.micStream = null
+        this.screenPreviewEl = document.createElement('video')
+        this.screenPreviewEl.muted = true
+        this.screenPreviewEl.playsInline = true
+        this.cameraPreviewEl = document.createElement('video')
+        this.cameraPreviewEl.muted = true
+        this.cameraPreviewEl.playsInline = true
+        this.canvas = document.createElement('canvas')
+        this.cameraCanvas = document.createElement('canvas')
+        this.screenFrameTimer = null
+        this.cameraFrameTimer = null
+        this.netTimer = null
+        this.screenRecorder = null
+        this.cameraRecorder = null
+        this.cameraRequestDataTimer = null
+        this.audioRecorder = null
+        this.videoSeq = 0
+        this.audioSeq = 0
+        this.activeMicDeviceId = null
+        this.activeMicLabel = ''
+        this.currentTier = 'normal'
+        this.currentIntervalMs = 100
+        this.currentJpegQuality = 0.6
+        this.consecutiveLowBuffer = 0
+        this.screenActive = false
+        this.cameraActive = false
+        this.currentCameraMode = 'recorder'
+        this.lastCameraChunkAt = 0
+        this.cameraChunkIntervalMs = 0
+        this.cameraChunkIntervalAvgMs = 0
+        this.cameraChunkProcessMs = 0
+        this.cameraChunkProcessAvgMs = 0
+      }
+
+      async ensureMic() {
+        const selectedDeviceId = this.getConfig().micDeviceId || 'default'
+        if (this.micStream && this.activeMicDeviceId === selectedDeviceId) {
+          return
+        }
+        this.audioRecorder?.stop()
+        this.audioRecorder = null
+        this.micStream?.getTracks().forEach((track) => track.stop())
+        const requestedConstraint = selectedDeviceId !== 'default'
+          ? { deviceId: { exact: selectedDeviceId } }
+          : true
+        try {
+          this.micStream = await navigator.mediaDevices.getUserMedia({ audio: requestedConstraint, video: false })
+        } catch (error) {
+          if (selectedDeviceId === 'default') {
+            throw error
+          }
+          this.onDebug?.(`selected mic unavailable, falling back to default: ${error.message || 'unknown error'}`)
+          this.micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        }
+        const settingsDeviceId = this.micStream.getAudioTracks()[0]?.getSettings?.().deviceId
+        const trackLabel = this.micStream.getAudioTracks()[0]?.label || ''
+        this.activeMicDeviceId = settingsDeviceId || (selectedDeviceId === 'default' ? 'default' : selectedDeviceId)
+        this.activeMicLabel = trackLabel
+        this.onDebug?.(`mic ready device=${this.activeMicDeviceId} label=${this.activeMicLabel || 'unknown'}`)
+        this.startAudioRecorder()
+      }
+
+      getActiveMicInfo() {
+        return {
+          deviceId: this.activeMicDeviceId,
+          label: this.activeMicLabel
+        }
+      }
+
+      async startScreenShare() {
+        this.currentIntervalMs = Math.max(50, Number(this.getConfig().intervalMs) || 100)
+        this.currentJpegQuality = 0.6
+        this.currentTier = 'normal'
+        this.consecutiveLowBuffer = 0
+        if (this.screenStream) {
+          this.screenStream.getTracks().forEach((track) => track.stop())
+          this.screenStream = null
+        }
+        this.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
+        this.screenPreviewEl.srcObject = this.screenStream
+        await this.screenPreviewEl.play()
+        this.screenActive = true
+        this.startScreenSnapshotLoop()
+        await this.ensureMic()
+        this.startNetMonitor()
+        this.setStatus(`Screen share started (snapshot every ${this.currentIntervalMs}ms)`)
+      }
+
+      async startCameraStream() {
+        this.currentIntervalMs = Math.max(50, Number(this.getConfig().intervalMs) || 100)
+        this.currentJpegQuality = 0.6
+        this.currentTier = 'normal'
+        this.consecutiveLowBuffer = 0
+        if (this.cameraFrameTimer) {
+          clearTimeout(this.cameraFrameTimer)
+          this.cameraFrameTimer = null
+        }
+        if (this.cameraRequestDataTimer) {
+          clearInterval(this.cameraRequestDataTimer)
+          this.cameraRequestDataTimer = null
+        }
+        this.cameraRecorder?.stop()
+        this.cameraRecorder = null
+        if (this.cameraStream) {
+          this.cameraStream.getTracks().forEach((track) => track.stop())
+          this.cameraStream = null
+        }
+        this.cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 960, max: 1280 },
+            height: { ideal: 540, max: 720 },
+            frameRate: { ideal: 24, max: 30 }
+          },
+          audio: false
+        })
+        this.cameraActive = true
+        this.currentCameraMode = this.getConfig().cameraMode === 'jpeg' ? 'jpeg' : 'recorder'
+        if (this.currentCameraMode === 'jpeg') {
+          this.startCameraSnapshotLoop()
+        } else {
+          this.startCameraRecorder()
+        }
+        await this.ensureMic()
+        this.startNetMonitor()
+        this.setStatus(this.currentCameraMode === 'jpeg'
+          ? `Camera stream started (jpeg every ${this.currentIntervalMs}ms)`
+          : 'Camera stream started (video chunks)')
+      }
+
+      startCameraRecorder() {
+        if (this.cameraFrameTimer) {
+          clearTimeout(this.cameraFrameTimer)
+          this.cameraFrameTimer = null
+        }
+        this.cameraPreviewEl.pause()
+        this.cameraPreviewEl.removeAttribute('src')
+        this.cameraPreviewEl.srcObject = null
+        if (this.cameraRequestDataTimer) {
+          clearInterval(this.cameraRequestDataTimer)
+          this.cameraRequestDataTimer = null
+        }
+        this.cameraRecorder?.stop()
+        this.lastCameraChunkAt = 0
+        this.cameraChunkIntervalMs = 0
+        this.cameraChunkIntervalAvgMs = 0
+        this.cameraChunkProcessMs = 0
+        this.cameraChunkProcessAvgMs = 0
+        const preferredMimeTypes = [
+          'video/webm;codecs=vp8',
+          'video/webm;codecs=vp9',
+          'video/webm'
+        ]
+        const mimeType = preferredMimeTypes.find((type) => MediaRecorder.isTypeSupported(type)) || ''
+        this.onDebug?.(`camera recorder mime=${mimeType || 'default'}`)
+        this.cameraRecorder = new MediaRecorder(this.cameraStream, mimeType ? { mimeType } : {})
+        this.cameraRecorder.addEventListener('stop', () => {
+          if (this.cameraRequestDataTimer) {
+            clearInterval(this.cameraRequestDataTimer)
+            this.cameraRequestDataTimer = null
+          }
+        })
+        this.cameraRecorder.addEventListener('error', () => {
+          if (this.cameraRequestDataTimer) {
+            clearInterval(this.cameraRequestDataTimer)
+            this.cameraRequestDataTimer = null
+          }
+        })
+        this.cameraRecorder.addEventListener('dataavailable', async (event) => {
+          if (!event.data || event.data.size === 0) return
+          const chunkStartedAt = Date.now()
+          if (this.lastCameraChunkAt > 0) {
+            this.cameraChunkIntervalMs = Math.max(0, chunkStartedAt - this.lastCameraChunkAt)
+            this.cameraChunkIntervalAvgMs = this.cameraChunkIntervalAvgMs > 0
+              ? Math.round((this.cameraChunkIntervalAvgMs * 0.85) + (this.cameraChunkIntervalMs * 0.15))
+              : this.cameraChunkIntervalMs
+          }
+          this.lastCameraChunkAt = chunkStartedAt
+          if (event.data.size <= 64) {
+            this.onDebug?.(`camera tiny chunk ignored size=${event.data.size}`)
+            return
+          }
+          this.onDebug?.(`camera chunk seq=${this.videoSeq} size=${event.data.size} mime=${event.data.type || mimeType || 'video/webm'}`)
+          this.evaluateBackpressure()
+          // Drop some chunks when under extreme pressure to keep latency bounded.
+          if (this.currentTier === 'critical' && this.videoSeq % 2 === 1) {
+            this.videoSeq += 1
+            this.onDebug?.('camera chunk dropped due to critical backpressure')
+            return
+          }
+          const frame = await MediaFrameCodec.encode({
+            kind: MediaFrameCodec.VIDEO,
+            source: MediaFrameCodec.SOURCE_CAMERA,
+            seq: this.videoSeq++,
+            ts: Date.now(),
+            mime: event.data.type || mimeType || 'video/webm',
+            blob: event.data
+          })
+          this.transport.sendBinary(frame)
+          this.cameraChunkProcessMs = Math.max(0, Date.now() - chunkStartedAt)
+          this.cameraChunkProcessAvgMs = this.cameraChunkProcessAvgMs > 0
+            ? Math.round((this.cameraChunkProcessAvgMs * 0.85) + (this.cameraChunkProcessMs * 0.15))
+            : this.cameraChunkProcessMs
+        })
+        this.cameraRecorder.start()
+        this.cameraRequestDataTimer = setInterval(() => {
+          if (!this.cameraRecorder || this.cameraRecorder.state !== 'recording') {
+            return
+          }
+          try {
+            this.cameraRecorder.requestData()
+          } catch (error) {
+            this.onDebug?.(`camera requestData failed: ${error.message || 'unknown error'}`)
+          }
+        }, 100)
+      }
+
+      startCameraSnapshotLoop() {
+        this.cameraRecorder?.stop()
+        this.cameraRecorder = null
+        if (this.cameraRequestDataTimer) {
+          clearInterval(this.cameraRequestDataTimer)
+          this.cameraRequestDataTimer = null
+        }
+        if (this.cameraFrameTimer) {
+          clearTimeout(this.cameraFrameTimer)
+          this.cameraFrameTimer = null
+        }
+        this.lastCameraChunkAt = 0
+        this.cameraChunkIntervalMs = 0
+        this.cameraChunkIntervalAvgMs = 0
+        this.cameraChunkProcessMs = 0
+        this.cameraChunkProcessAvgMs = 0
+        this.cameraPreviewEl.srcObject = this.cameraStream
+        this.cameraPreviewEl.play().then(() => {
+          this.cameraFrameTimer = setTimeout(() => this.captureCameraSnapshotFrame(), this.currentIntervalMs)
+        }).catch((error) => {
+          this.onDebug?.(`camera preview play failed: ${error.message || 'unknown error'}`)
+        })
+      }
+
+      async captureCameraSnapshotFrame() {
+        if (!this.cameraStream || !this.cameraActive || this.currentCameraMode !== 'jpeg') {
+          return
+        }
+        const chunkStartedAt = Date.now()
+        try {
+          this.evaluateBackpressure()
+          if (!this.cameraPreviewEl.videoWidth || !this.cameraPreviewEl.videoHeight) return
+          if (this.lastCameraChunkAt > 0) {
+            this.cameraChunkIntervalMs = Math.max(0, chunkStartedAt - this.lastCameraChunkAt)
+            this.cameraChunkIntervalAvgMs = this.cameraChunkIntervalAvgMs > 0
+              ? Math.round((this.cameraChunkIntervalAvgMs * 0.85) + (this.cameraChunkIntervalMs * 0.15))
+              : this.cameraChunkIntervalMs
+          }
+          this.lastCameraChunkAt = chunkStartedAt
+          this.cameraCanvas.width = this.cameraPreviewEl.videoWidth
+          this.cameraCanvas.height = this.cameraPreviewEl.videoHeight
+          const ctx = this.cameraCanvas.getContext('2d', { alpha: false })
+          ctx.drawImage(this.cameraPreviewEl, 0, 0, this.cameraCanvas.width, this.cameraCanvas.height)
+          const blob = await new Promise((resolve) => this.cameraCanvas.toBlob(resolve, 'image/jpeg', this.currentJpegQuality))
+          if (!blob) return
+          const frame = await MediaFrameCodec.encode({
+            kind: MediaFrameCodec.VIDEO,
+            source: MediaFrameCodec.SOURCE_CAMERA,
+            seq: this.videoSeq++,
+            ts: Date.now(),
+            mime: blob.type || 'image/jpeg',
+            blob
+          })
+          this.transport.sendBinary(frame)
+          this.cameraChunkProcessMs = Math.max(0, Date.now() - chunkStartedAt)
+          this.cameraChunkProcessAvgMs = this.cameraChunkProcessAvgMs > 0
+            ? Math.round((this.cameraChunkProcessAvgMs * 0.85) + (this.cameraChunkProcessMs * 0.15))
+            : this.cameraChunkProcessMs
+        } finally {
+          if (this.cameraStream && this.cameraActive && this.currentCameraMode === 'jpeg') {
+            this.cameraFrameTimer = setTimeout(() => this.captureCameraSnapshotFrame(), this.currentIntervalMs)
+          }
+        }
+      }
+
+      startScreenSnapshotLoop() {
+        if (this.screenFrameTimer) {
+          clearTimeout(this.screenFrameTimer)
+        }
+        this.screenFrameTimer = setTimeout(() => this.captureSnapshotFrame(), this.currentIntervalMs)
+      }
+
+      evaluateBackpressure() {
+        const buffered = this.transport.bufferedAmount()
+        const baseIntervalMs = Math.max(50, Number(this.getConfig().intervalMs) || 100)
+        const HIGH = 1_500_000
+        const MED = 650_000
+
+        let nextTier = this.currentTier
+        if (buffered > HIGH) {
+          nextTier = 'critical'
+          this.consecutiveLowBuffer = 0
+        } else if (buffered > MED) {
+          nextTier = 'degraded'
+          this.consecutiveLowBuffer = 0
+        } else {
+          this.consecutiveLowBuffer += 1
+          if (this.consecutiveLowBuffer >= 8) {
+            nextTier = 'normal'
+          }
+        }
+
+        this.currentTier = nextTier
+        if (nextTier === 'critical') {
+          this.currentIntervalMs = Math.max(220, Math.round(baseIntervalMs * 2.4))
+          this.currentJpegQuality = 0.35
+        } else if (nextTier === 'degraded') {
+          this.currentIntervalMs = Math.max(140, Math.round(baseIntervalMs * 1.6))
+          this.currentJpegQuality = 0.48
+        } else {
+          this.currentIntervalMs = baseIntervalMs
+          this.currentJpegQuality = 0.6
+        }
+
+        this.setNetStats({
+          tier: this.currentTier,
+          bufferedKb: Math.round(buffered / 1024),
+          fps: this.screenActive ? (1000 / this.currentIntervalMs).toFixed(1) : 'off',
+          quality: this.screenActive ? this.currentJpegQuality.toFixed(2) : 'off',
+          cameraMode: this.cameraActive ? this.currentCameraMode : 'off',
+          cameraChunkIntervalMs: this.cameraActive ? this.cameraChunkIntervalMs : 'off',
+          cameraChunkIntervalAvgMs: this.cameraActive ? this.cameraChunkIntervalAvgMs : 'off',
+          cameraChunkAgeEstMs: this.cameraActive ? Math.round(this.cameraChunkIntervalMs / 2) : 'off',
+          cameraChunkAgeEstAvgMs: this.cameraActive ? Math.round(this.cameraChunkIntervalAvgMs / 2) : 'off',
+          cameraChunkProcessMs: this.cameraActive ? this.cameraChunkProcessMs : 'off',
+          cameraChunkProcessAvgMs: this.cameraActive ? this.cameraChunkProcessAvgMs : 'off'
+        })
+      }
+
+      async captureSnapshotFrame() {
+        if (!this.screenStream || !this.screenActive) {
+          return
+        }
+        try {
+          this.evaluateBackpressure()
+          if (!this.screenPreviewEl.videoWidth || !this.screenPreviewEl.videoHeight) return
+          this.canvas.width = this.screenPreviewEl.videoWidth
+          this.canvas.height = this.screenPreviewEl.videoHeight
+          const ctx = this.canvas.getContext('2d', { alpha: false })
+          ctx.drawImage(this.screenPreviewEl, 0, 0, this.canvas.width, this.canvas.height)
+          const blob = await new Promise((resolve) => this.canvas.toBlob(resolve, 'image/jpeg', this.currentJpegQuality))
+          if (!blob) return
+          const frame = await MediaFrameCodec.encode({
+            kind: MediaFrameCodec.VIDEO,
+            source: MediaFrameCodec.SOURCE_SCREEN,
+            seq: this.videoSeq++,
+            ts: Date.now(),
+            mime: blob.type || 'image/jpeg',
+            blob
+          })
+          this.transport.sendBinary(frame)
+        } finally {
+          if (this.screenStream && this.screenActive) {
+            this.startScreenSnapshotLoop()
+          }
+        }
+      }
+
+      startNetMonitor() {
+        if (this.netTimer) {
+          clearInterval(this.netTimer)
+        }
+        this.netTimer = setInterval(() => this.evaluateBackpressure(), 300)
+      }
+
+      startAudioRecorder() {
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : ''
+        this.audioRecorder = new MediaRecorder(this.micStream, mimeType ? { mimeType } : {})
+        this.audioRecorder.addEventListener('dataavailable', async (event) => {
+          if (!event.data || event.data.size === 0) return
+          const frame = await MediaFrameCodec.encode({
+            kind: MediaFrameCodec.AUDIO,
+            source: MediaFrameCodec.SOURCE_UNKNOWN,
+            seq: this.audioSeq++,
+            ts: Date.now(),
+            mime: event.data.type || mimeType || 'audio/webm',
+            blob: event.data
+          })
+          this.transport.sendBinary(frame)
+        })
+        this.audioRecorder.start(80)
+      }
+
+      stop() {
+        if (this.screenFrameTimer) {
+          clearTimeout(this.screenFrameTimer)
+          this.screenFrameTimer = null
+        }
+        if (this.cameraFrameTimer) {
+          clearTimeout(this.cameraFrameTimer)
+          this.cameraFrameTimer = null
+        }
+        if (this.netTimer) {
+          clearInterval(this.netTimer)
+          this.netTimer = null
+        }
+        if (this.cameraRequestDataTimer) {
+          clearInterval(this.cameraRequestDataTimer)
+          this.cameraRequestDataTimer = null
+        }
+        this.screenRecorder?.stop()
+        this.screenRecorder = null
+        this.cameraRecorder?.stop()
+        this.cameraRecorder = null
+        this.cameraPreviewEl.pause()
+        this.cameraPreviewEl.removeAttribute('src')
+        this.cameraPreviewEl.srcObject = null
+        this.audioRecorder?.stop()
+        this.audioRecorder = null
+        this.screenStream?.getTracks().forEach((track) => track.stop())
+        this.cameraStream?.getTracks().forEach((track) => track.stop())
+        this.micStream?.getTracks().forEach((track) => track.stop())
+        this.screenStream = null
+        this.cameraStream = null
+        this.micStream = null
+        this.activeMicDeviceId = null
+        this.activeMicLabel = ''
+        this.screenActive = false
+        this.cameraActive = false
+        this.currentCameraMode = 'off'
+        this.lastCameraChunkAt = 0
+        this.cameraChunkIntervalMs = 0
+        this.cameraChunkIntervalAvgMs = 0
+        this.cameraChunkProcessMs = 0
+        this.cameraChunkProcessAvgMs = 0
+        this.setNetStats({
+          tier: 'idle',
+          bufferedKb: 0,
+          fps: 0,
+          quality: '0.00',
+          cameraMode: 'off',
+          cameraChunkIntervalMs: 'off',
+          cameraChunkIntervalAvgMs: 'off',
+          cameraChunkAgeEstMs: 'off',
+          cameraChunkAgeEstAvgMs: 'off',
+          cameraChunkProcessMs: 'off',
+          cameraChunkProcessAvgMs: 'off'
+        })
+      }
+    }
+
+    class ViewerController {
+      constructor({
+        screenVideoEl,
+        screenImgEl,
+        screenEmptyEl,
+        cameraVideoEl,
+        cameraImgEl,
+        cameraEmptyEl,
+        screenVideoQueue,
+        cameraVideoQueue,
+        cameraMsePlayer,
+        audioQueue,
+        audioMsePlayer,
+        audioJitterBuffer,
+        onDebug
+      }) {
+        this.screenVideoEl = screenVideoEl
+        this.screenImgEl = screenImgEl
+        this.screenEmptyEl = screenEmptyEl
+        this.cameraVideoEl = cameraVideoEl
+        this.cameraImgEl = cameraImgEl
+        this.cameraEmptyEl = cameraEmptyEl
+        this.screenVideoQueue = screenVideoQueue
+        this.cameraVideoQueue = cameraVideoQueue
+        this.cameraMsePlayer = cameraMsePlayer
+        this.audioQueue = audioQueue
+        this.audioMsePlayer = audioMsePlayer
+        this.audioJitterBuffer = audioJitterBuffer
+        this.onDebug = onDebug
+        this.frames = 0
+        this.audio = 0
+        this.videoDropped = 0
+        this.cameraLatencyMs = 0
+        this.cameraLatencyAvgMs = 0
+        this.screenLatencyMs = 0
+        this.screenLatencyAvgMs = 0
+        this.cameraQueueDepth = 0
+        this.cameraPlaybackDelayMs = 0
+        this.cameraPlaybackDelayAvgMs = 0
+        this.cameraPlaybackMode = 'n/a'
+        this.lastVideoSeq = null
+        this.screenImageUrl = null
+        this.cameraImageUrl = null
+        this.cameraRenderMode = null
+        this.onStats = null
+
+        this.cameraVideoQueue.setOnPlaybackStart((event) => this.recordCameraPlaybackDelay(event))
+        this.cameraMsePlayer.setOnPlaybackStart((event) => this.recordCameraPlaybackDelay(event))
+      }
+
+      recordCameraPlaybackDelay({ delayMs, mode }) {
+        this.cameraPlaybackDelayMs = delayMs
+        this.cameraPlaybackDelayAvgMs = this.cameraPlaybackDelayAvgMs > 0
+          ? Math.round((this.cameraPlaybackDelayAvgMs * 0.85) + (delayMs * 0.15))
+          : delayMs
+        this.cameraPlaybackMode = mode || this.cameraPlaybackMode
+        this.emitStats()
+      }
+
+      updateCameraPlaybackStats() {
+        if (this.cameraRenderMode === 'mse') {
+          this.cameraQueueDepth = this.cameraMsePlayer.getPendingDepth()
+          this.cameraPlaybackMode = 'mse'
+          return
+        }
+        if (this.cameraRenderMode === 'image') {
+          this.cameraQueueDepth = 0
+          this.cameraPlaybackMode = 'image'
+          return
+        }
+        this.cameraQueueDepth = this.cameraVideoQueue.getQueueDepth()
+        this.cameraPlaybackMode = this.cameraRenderMode || 'blob'
+      }
+
+      updateLatencyForSource(source, latencyMs) {
+        if (source === MediaFrameCodec.SOURCE_CAMERA) {
+          this.cameraLatencyMs = latencyMs
+          this.cameraLatencyAvgMs = this.cameraLatencyAvgMs > 0
+            ? Math.round((this.cameraLatencyAvgMs * 0.85) + (latencyMs * 0.15))
+            : latencyMs
+          return
+        }
+        this.screenLatencyMs = latencyMs
+        this.screenLatencyAvgMs = this.screenLatencyAvgMs > 0
+          ? Math.round((this.screenLatencyAvgMs * 0.85) + (latencyMs * 0.15))
+          : latencyMs
+      }
+
+      onBinaryFrame(buffer) {
+        const packet = MediaFrameCodec.decode(buffer)
+        if (!packet) return
+        if (packet.kind === MediaFrameCodec.VIDEO) {
+          if (this.lastVideoSeq !== null && packet.seq > this.lastVideoSeq + 1) {
+            this.videoDropped += packet.seq - this.lastVideoSeq - 1
+          }
+          this.lastVideoSeq = packet.seq
+          this.frames += 1
+          const source = packet.source ?? MediaFrameCodec.SOURCE_UNKNOWN
+          const latency = Math.max(0, Date.now() - Number(packet.ts || 0))
+          this.updateLatencyForSource(source, Number.isFinite(latency) ? latency : 0)
+          if (source === MediaFrameCodec.SOURCE_CAMERA) {
+            this.cameraEmptyEl.hidden = true
+            if ((packet.mime || '').startsWith('image/')) {
+              if (this.cameraRenderMode !== 'image') {
+                this.cameraMsePlayer.reset()
+                this.cameraVideoQueue.reset()
+                this.cameraVideoEl.style.display = 'none'
+                this.cameraImgEl.style.display = 'block'
+                this.cameraRenderMode = 'image'
+              }
+              if (this.cameraImageUrl) {
+                URL.revokeObjectURL(this.cameraImageUrl)
+              }
+              this.cameraImageUrl = URL.createObjectURL(new Blob([packet.payload], { type: packet.mime || 'image/jpeg' }))
+              this.cameraImgEl.src = this.cameraImageUrl
+              this.cameraPlaybackDelayMs = 0
+              this.cameraPlaybackDelayAvgMs = 0
+              this.updateCameraPlaybackStats()
+              this.emitStats()
+              return
+            }
+            this.cameraImgEl.style.display = 'none'
+            const usedMse = this.cameraMsePlayer.appendChunk(packet.payload, packet.mime || 'video/webm')
+            this.onDebug?.(`camera packet seq=${packet.seq} bytes=${packet.payload.byteLength} mime=${packet.mime || 'video/webm'} path=${usedMse ? 'mse' : 'blob'}`)
+            if (!usedMse) {
+              if (this.cameraRenderMode !== 'blob') {
+                this.cameraMsePlayer.reset()
+                this.cameraRenderMode = 'blob'
+              }
+              this.cameraVideoQueue.enqueueBlob(new Blob([packet.payload], { type: packet.mime || 'video/webm' }))
+            } else {
+              if (this.cameraRenderMode !== 'mse') {
+                // Do not reset the element src here; MSE owns it now.
+                this.cameraVideoQueue.clearPending()
+                this.cameraRenderMode = 'mse'
+              }
+            }
+            this.updateCameraPlaybackStats()
+            this.emitStats()
+            return
+          }
+          this.screenEmptyEl.hidden = true
+          if ((packet.mime || '').startsWith('video/')) {
+            this.screenImgEl.style.display = 'none'
+            this.screenVideoQueue.enqueueBlob(new Blob([packet.payload], { type: packet.mime || 'video/webm' }))
+            this.emitStats()
+            return
+          }
+          this.screenVideoQueue.reset()
+          this.screenVideoEl.style.display = 'none'
+          this.screenImgEl.style.display = 'block'
+          if (this.screenImageUrl) {
+            URL.revokeObjectURL(this.screenImageUrl)
+          }
+          this.screenImageUrl = URL.createObjectURL(new Blob([packet.payload], { type: packet.mime || 'image/jpeg' }))
+          this.screenImgEl.src = this.screenImageUrl
+          this.emitStats()
+          return
+        }
+        if (packet.kind === MediaFrameCodec.AUDIO) {
+          this.audio += 1
+          const mime = packet.mime || 'audio/webm;codecs=opus'
+          const usedMse = this.audioMsePlayer.appendChunk(packet.payload, mime)
+          if (!usedMse) {
+            this.audioQueue.enqueueBlob(new Blob([packet.payload], { type: mime }))
+          }
+          this.emitStats()
+        }
+      }
+
+      reset() {
+        this.frames = 0
+        this.audio = 0
+        this.videoDropped = 0
+        this.cameraLatencyMs = 0
+        this.cameraLatencyAvgMs = 0
+        this.screenLatencyMs = 0
+        this.screenLatencyAvgMs = 0
+        this.cameraQueueDepth = 0
+        this.cameraPlaybackDelayMs = 0
+        this.cameraPlaybackDelayAvgMs = 0
+        this.cameraPlaybackMode = 'n/a'
+        this.lastVideoSeq = null
+        this.cameraRenderMode = null
+        this.screenEmptyEl.hidden = false
+        this.cameraEmptyEl.hidden = false
+        this.screenImgEl.removeAttribute('src')
+        this.screenImgEl.style.display = 'block'
+        if (this.screenImageUrl) {
+          URL.revokeObjectURL(this.screenImageUrl)
+          this.screenImageUrl = null
+        }
+        this.screenVideoQueue.reset()
+        this.cameraMsePlayer.reset()
+        this.cameraVideoQueue.reset()
+        this.audioMsePlayer.reset()
+        this.cameraVideoEl.style.display = 'none'
+        this.cameraImgEl.style.display = 'none'
+        this.cameraImgEl.removeAttribute('src')
+        if (this.cameraImageUrl) {
+          URL.revokeObjectURL(this.cameraImageUrl)
+          this.cameraImageUrl = null
+        }
+        this.audioJitterBuffer.reset()
+        this.emitStats()
+      }
+
+      emitStats() {
+        if (this.onStats) {
+          this.onStats({
+            frames: this.frames,
+            audio: this.audio,
+            droppedAudio: this.audioJitterBuffer.dropped,
+            droppedVideo: this.videoDropped,
+            cameraLatencyMs: this.cameraLatencyMs,
+            cameraLatencyAvgMs: this.cameraLatencyAvgMs,
+            screenLatencyMs: this.screenLatencyMs,
+            screenLatencyAvgMs: this.screenLatencyAvgMs,
+            cameraQueueDepth: this.cameraQueueDepth,
+            cameraPlaybackDelayMs: this.cameraPlaybackDelayMs,
+            cameraPlaybackDelayAvgMs: this.cameraPlaybackDelayAvgMs,
+            cameraPlaybackMode: this.cameraPlaybackMode
+          })
+        }
+      }
+    }
+
+    const dom = {
+      role: document.querySelector('#role'),
+      channel: document.querySelector('#channel'),
+      fps: document.querySelector('#fps'),
+      micSource: document.querySelector('#micSource'),
+      cameraMode: document.querySelector('#cameraMode'),
+      disconnect: document.querySelector('#disconnect'),
+      startScreenShare: document.querySelector('#startScreenShare'),
+      startCameraStream: document.querySelector('#startCameraStream'),
+      stopShare: document.querySelector('#stopShare'),
+      debugMode: document.querySelector('#debugMode'),
+      status: document.querySelector('#status'),
+      debugLog: document.querySelector('#debugLog'),
+      screen: document.querySelector('#screen'),
+      screenVideo: document.querySelector('#screenVideo'),
+      screenEmpty: document.querySelector('#screenEmpty'),
+      cameraVideo: document.querySelector('#cameraVideo'),
+      cameraImage: document.querySelector('#cameraImage'),
+      cameraEmpty: document.querySelector('#cameraEmpty'),
+      statsFrames: document.querySelector('#statsFrames'),
+      statsAudio: document.querySelector('#statsAudio'),
+      statsLatencyCamera: document.querySelector('#statsLatencyCamera'),
+      statsLatencyScreen: document.querySelector('#statsLatencyScreen'),
+      statsPlayback: document.querySelector('#statsPlayback'),
+      statsNet: document.querySelector('#statsNet'),
+      audioSink: document.querySelector('#audioSink')
+    }
+
+    const appendStatus = (text) => {
+      dom.status.textContent = `${new Date().toLocaleTimeString()} ${text}\n${dom.status.textContent}`.trim()
+    }
+    const isDebug = () => Boolean(dom.debugMode.checked)
+    const appendDebug = (text) => {
+      if (!isDebug()) return
+      const line = `${new Date().toLocaleTimeString()} ${text}`
+      dom.debugLog.style.display = 'block'
+      dom.debugLog.textContent = `${line}\n${dom.debugLog.textContent}`.trim()
+      console.log(`[prototype-debug] ${line}`)
+    }
+    dom.debugMode.addEventListener('change', () => {
+      dom.debugLog.style.display = dom.debugMode.checked ? 'block' : 'none'
+      if (!dom.debugMode.checked) {
+        dom.debugLog.textContent = ''
+      }
+    })
+    dom.cameraVideo.addEventListener('error', () => {
+      const err = dom.cameraVideo.error
+      appendDebug(`cameraVideo element error code=${err?.code || 'n/a'} readyState=${dom.cameraVideo.readyState}`)
+    })
+    dom.cameraVideo.addEventListener('stalled', () => {
+      appendDebug(`cameraVideo stalled readyState=${dom.cameraVideo.readyState}`)
+    })
+    dom.cameraVideo.addEventListener('waiting', () => {
+      appendDebug(`cameraVideo waiting readyState=${dom.cameraVideo.readyState}`)
+    })
+
+    const currentChannel = () => dom.channel.value || 'general'
+    const clientId = (() => {
+      const existing = localStorage.getItem('prototype_stream_client_id')
+      if (existing) return existing
+      const id = (crypto?.randomUUID?.() || `client-${Date.now()}-${Math.random().toString(16).slice(2)}`)
+      localStorage.setItem('prototype_stream_client_id', id)
+      return id
+    })()
+    let manualDisconnect = false
+    let controlReconnectTimer = null
+    let mediaReconnectTimer = null
+    const persistedMicId = localStorage.getItem('prototype_stream_mic_source')
+    const persistedCameraMode = localStorage.getItem('prototype_stream_camera_mode') || 'recorder'
+    dom.cameraMode.value = persistedCameraMode === 'jpeg' ? 'jpeg' : 'recorder'
+
+    const setMicOptions = (devices) => {
+      if (devices.length === 0 || devices.some((device) => device.deviceId.length === 0)) {
+        dom.micSource.replaceChildren()
+        const node = document.createElement('option')
+        node.value = 'default'
+        node.textContent = 'No microphones found'
+        dom.micSource.append(node)
+        return
+      }
+
+      const previous = dom.micSource.value || persistedMicId
+      const defaultDevice = devices[0]
+      const nonDefaultDevices = devices.slice(1)
+
+      const options = [
+        {
+          value: defaultDevice.deviceId,
+          label: defaultDevice.label
+        },
+        ...nonDefaultDevices.map((device, index) => ({
+          value: device.deviceId,
+          label: device.label
+        }))
+      ]
+
+      dom.micSource.replaceChildren()
+      for (const option of options) {
+        const node = document.createElement('option')
+        node.value = option.value
+        node.textContent = option.label
+        dom.micSource.append(node)
+      }
+      dom.micSource.selectedIndex = 0
+    }
+
+    const refreshMicSources = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        setMicOptions(devices.filter((device) => device.kind === 'audioinput'))
+      } catch (error) {
+        appendDebug(`enumerate mics failed: ${error.message || 'unknown error'}`)
+      }
+    }
+    const selectedMicLabel = () => {
+      const selected = dom.micSource.selectedOptions?.[0]
+      const selectedText = selected?.textContent || ''
+      if ((dom.micSource.value || 'default') === 'default' && selectedText.trim() === 'System default') {
+        const active = broadcaster.getActiveMicInfo()
+        const resolvedLabel = active.label
+          || Array.from(dom.micSource.options).find((option) => option.value === active.deviceId)?.textContent
+        if (resolvedLabel) {
+          return `System default (${resolvedLabel})`
+        }
+      }
+      return selected?.textContent || 'System default'
+    }
+
+    const audioQueue = new AudioPlaybackQueue(dom.audioSink)
+    const screenVideoQueue = new VideoPlaybackQueue(dom.screenVideo)
+    const cameraVideoQueue = new VideoPlaybackQueue(dom.cameraVideo, { latestFrameWins: true })
+    const cameraMsePlayer = new CameraMsePlayer(dom.cameraVideo, appendDebug)
+    const audioMsePlayer = new AudioMsePlayer(dom.audioSink, appendDebug)
+    const jitterBuffer = new AudioJitterBuffer(audioQueue)
+    const viewer = new ViewerController({
+      screenVideoEl: dom.screenVideo,
+      screenImgEl: dom.screen,
+      screenEmptyEl: dom.screenEmpty,
+      cameraVideoEl: dom.cameraVideo,
+      cameraImgEl: dom.cameraImage,
+      cameraEmptyEl: dom.cameraEmpty,
+      screenVideoQueue,
+      cameraVideoQueue,
+      cameraMsePlayer,
+      audioQueue,
+      audioMsePlayer,
+      audioJitterBuffer: jitterBuffer,
+      onDebug: appendDebug
+    })
+    viewer.onStats = ({
+      frames,
+      audio,
+      droppedAudio,
+      droppedVideo,
+      cameraLatencyMs,
+      cameraLatencyAvgMs,
+      screenLatencyMs,
+      screenLatencyAvgMs,
+      cameraQueueDepth,
+      cameraPlaybackDelayMs,
+      cameraPlaybackDelayAvgMs,
+      cameraPlaybackMode
+    }) => {
+      dom.statsFrames.textContent = `Frames: ${frames} | dropped: ${droppedVideo}`
+      dom.statsAudio.textContent = `Audio chunks: ${audio} | dropped: ${droppedAudio}`
+      dom.statsLatencyCamera.textContent = `Camera latency: ${cameraLatencyMs}ms | avg: ${cameraLatencyAvgMs}ms`
+      dom.statsLatencyScreen.textContent = `Screen latency: ${screenLatencyMs}ms | avg: ${screenLatencyAvgMs}ms`
+      dom.statsPlayback.textContent = `Camera playback: mode=${cameraPlaybackMode} | q=${cameraQueueDepth} | delay=${cameraPlaybackDelayMs}ms | avg=${cameraPlaybackDelayAvgMs}ms`
+    }
+
+    const setNetStats = ({
+      tier,
+      bufferedKb,
+      fps,
+      quality,
+      cameraMode = 'off',
+      cameraChunkIntervalMs = 'off',
+      cameraChunkIntervalAvgMs = 'off',
+      cameraChunkAgeEstMs = 'off',
+      cameraChunkAgeEstAvgMs = 'off',
+      cameraChunkProcessMs = 'off',
+      cameraChunkProcessAvgMs = 'off'
+    }) => {
+      dom.statsNet.textContent = `Tier: ${tier} | buffered: ${bufferedKb}KB | fps: ${fps} | q: ${quality} | camMode: ${cameraMode} | camChunk: ${cameraChunkIntervalMs}/${cameraChunkIntervalAvgMs}ms | camAge~: ${cameraChunkAgeEstMs}/${cameraChunkAgeEstAvgMs}ms | camProc: ${cameraChunkProcessMs}/${cameraChunkProcessAvgMs}ms`
+    }
+    setNetStats({
+      tier: 'idle',
+      bufferedKb: 0,
+      fps: 0,
+      quality: '0.00',
+      cameraMode: 'off',
+      cameraChunkIntervalMs: 'off',
+      cameraChunkIntervalAvgMs: 'off',
+      cameraChunkAgeEstMs: 'off',
+      cameraChunkAgeEstAvgMs: 'off',
+      cameraChunkProcessMs: 'off',
+      cameraChunkProcessAvgMs: 'off'
+    })
+
+    const controlTransport = new WsTransport('/ws-stream-control', (msg) => {
+      if (msg.t === 'error') {
+        appendStatus(`server error: ${msg.body?.message || 'unknown'}`)
+        return
+      }
+      if (msg.t === 'joined') {
+        appendStatus(`control joined "${msg.body?.stream}" as ${msg.body?.role}`)
+        return
+      }
+      if (msg.t === 'stream.state') {
+        if (msg.body?.stream !== currentChannel()) {
+          return
+        }
+        if (msg.body?.state === 'idle') {
+          viewer.reset()
+          audioQueue.reset()
+        }
+        appendStatus(`state "${msg.body?.stream}" -> ${msg.body?.state}`)
+        return
+      }
+      if (msg.t === 'stream.peer_event') {
+        if (msg.body?.stream !== currentChannel() || msg.body?.role !== 'broadcaster') {
+          return
+        }
+        if (msg.body?.kind === 'leave') {
+          appendStatus(`broadcaster left "${msg.body.stream}"`)
+          viewer.reset()
+          audioQueue.reset()
+          return
+        }
+        if (msg.body?.kind === 'join') {
+          appendStatus(`broadcaster joined "${msg.body.stream}"`)
+          return
+        }
+      }
+      if (msg.t === 'status') {
+        appendStatus(msg.body?.message || 'status update')
+      }
+    }, () => {}, (status) => {
+      appendStatus(`socket ${status}`)
+      if (status === 'connected') {
+        if (controlReconnectTimer) {
+          clearTimeout(controlReconnectTimer)
+          controlReconnectTimer = null
+        }
+        joinControl()
+      }
+      if (status === 'disconnected' && !manualDisconnect) {
+        controlReconnectTimer = setTimeout(() => {
+          appendStatus('reconnecting control...')
+          controlTransport.connect()
+        }, 700)
+      }
+    })
+
+    const mediaTransport = new WsTransport('/ws-stream-media', (msg) => {
+      if (msg.t === 'error') {
+        appendStatus(`media error: ${msg.body?.message || 'unknown'}`)
+        return
+      }
+      if (msg.t === 'joined') {
+        appendStatus(`media joined "${msg.body?.stream}" as ${msg.body?.role}`)
+      }
+    }, (buffer) => viewer.onBinaryFrame(buffer), (status) => {
+      appendStatus(`media ${status}`)
+      if (status === 'connected') {
+        if (mediaReconnectTimer) {
+          clearTimeout(mediaReconnectTimer)
+          mediaReconnectTimer = null
+        }
+        joinMedia()
+      }
+      if (status === 'disconnected' && !manualDisconnect) {
+        mediaReconnectTimer = setTimeout(() => {
+          appendStatus('reconnecting media...')
+          mediaTransport.connect()
+        }, 700)
+      }
+    })
+
+    const broadcaster = new BroadcasterController(
+      mediaTransport,
+      () => ({
+        intervalMs: Number(dom.fps.value) || 100,
+        micDeviceId: dom.micSource.value || 'default',
+        cameraMode: dom.cameraMode.value || 'recorder'
+      }),
+      appendStatus,
+      setNetStats,
+      appendDebug
+    )
+
+    const joinPayload = () => ({
+      role: dom.role.value,
+      stream: currentChannel(),
+      client_id: clientId
+    })
+
+    const joinControl = () => {
+      const payload = joinPayload()
+      controlTransport.sendJson({ t: 'join', body: payload })
+    }
+
+    const joinMedia = () => {
+      const payload = joinPayload()
+      mediaTransport.sendJson({ t: 'join', body: payload })
+    }
+
+    const ensureStreamSockets = () => {
+      if (!controlTransport.isOpen() && !controlTransport.isConnecting()) {
+        controlTransport.connect()
+      }
+      if (!mediaTransport.isOpen() && !mediaTransport.isConnecting()) {
+        mediaTransport.connect()
+      }
+    }
+
+    const rejoin = () => {
+      if (manualDisconnect) {
+        manualDisconnect = false
+        ensureStreamSockets()
+      }
+      if (dom.role.value !== 'broadcaster') {
+        broadcaster.stop()
+      }
+      viewer.reset()
+      audioQueue.reset()
+      joinControl()
+      joinMedia()
+      appendStatus(`switched to "${currentChannel()}" as ${dom.role.value}`)
+    }
+
+    dom.disconnect.addEventListener('click', () => {
+      manualDisconnect = true
+      if (controlReconnectTimer) {
+        clearTimeout(controlReconnectTimer)
+        controlReconnectTimer = null
+      }
+      if (mediaReconnectTimer) {
+        clearTimeout(mediaReconnectTimer)
+        mediaReconnectTimer = null
+      }
+      broadcaster.stop()
+      viewer.reset()
+      audioQueue.reset()
+      controlTransport.close()
+      mediaTransport.close()
+      appendStatus('manually disconnected')
+    })
+
+    dom.channel.addEventListener('change', rejoin)
+    dom.role.addEventListener('change', rejoin)
+    dom.micSource.addEventListener('change', async () => {
+      const selected = dom.micSource.value || 'default'
+      localStorage.setItem('prototype_stream_mic_source', selected)
+      appendStatus(`selected mic: ${selectedMicLabel()}`)
+      if (dom.role.value !== 'broadcaster') {
+        return
+      }
+      if (!broadcaster.screenActive && !broadcaster.cameraActive) {
+        return
+      }
+      try {
+        await broadcaster.ensureMic()
+        appendStatus(`mic source changed to: ${selectedMicLabel()}`)
+      } catch (error) {
+        appendStatus(`mic change failed: ${error.message || 'unknown error'}`)
+      }
+    })
+    dom.cameraMode.addEventListener('change', async () => {
+      const selected = dom.cameraMode.value === 'jpeg' ? 'jpeg' : 'recorder'
+      localStorage.setItem('prototype_stream_camera_mode', selected)
+      appendStatus(`camera transport: ${selected}`)
+      if (dom.role.value !== 'broadcaster' || !broadcaster.cameraActive) {
+        return
+      }
+      try {
+        await broadcaster.startCameraStream()
+      } catch (error) {
+        appendStatus(`camera transport switch failed: ${error.message || 'unknown error'}`)
+      }
+    })
+
+    dom.startScreenShare.addEventListener('click', async () => {
+      if (dom.role.value !== 'broadcaster') {
+        appendStatus('select broadcaster role first')
+        return
+      }
+      if (manualDisconnect) {
+        manualDisconnect = false
+      }
+      ensureStreamSockets()
+      try {
+        await broadcaster.startScreenShare()
+        appendStatus(`mic: ${selectedMicLabel()}`)
+      } catch (error) {
+        appendStatus(`screen share failed: ${error.message || 'unknown error'}`)
+      }
+    })
+
+    dom.startCameraStream.addEventListener('click', async () => {
+      if (dom.role.value !== 'broadcaster') {
+        appendStatus('select broadcaster role first')
+        return
+      }
+      if (manualDisconnect) {
+        manualDisconnect = false
+      }
+      ensureStreamSockets()
+      try {
+        await broadcaster.startCameraStream()
+        appendStatus(`mic: ${selectedMicLabel()}`)
+      } catch (error) {
+        appendStatus(`camera stream failed: ${error.message || 'unknown error'}`)
+      }
+    })
+
+    dom.stopShare.addEventListener('click', () => {
+      broadcaster.stop()
+      appendStatus('sharing stopped')
+    })
+
+    manualDisconnect = false
+    setMicOptions([])
+    refreshMicSources()
+    navigator.mediaDevices?.addEventListener?.('devicechange', refreshMicSources)
+    controlTransport.connect()
+    mediaTransport.connect()
+  </script>
+</body>
+</html>
