@@ -27,6 +27,8 @@ const createInitialState = () => ({
   voiceActive: false,
   sidebarMenuOpen: false,
   micMuted: false,
+  selectedAudioInputId: localStorage.getItem('media.audio_input_id') || '',
+  selectedVideoInputId: localStorage.getItem('media.video_input_id') || '',
   textChatDrawerOpen: false,
   reconnectTimer: null,
   wsConnectTimer: null,

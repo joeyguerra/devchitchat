@@ -456,7 +456,10 @@ class RtcCallService {
       return
     }
     try {
-      this.state.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      const audioConstraints = this.state.selectedAudioInputId
+        ? { deviceId: { exact: this.state.selectedAudioInputId } }
+        : true
+      this.state.audioStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false })
     } catch (error) {
       this.state.micMuted = true
       this.showToast('Microphone access was denied')
@@ -502,7 +505,10 @@ class RtcCallService {
       return
     }
     try {
-      this.state.videoStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 360 }, audio: false })
+      const videoConstraints = this.state.selectedVideoInputId
+        ? { width: 640, height: 360, deviceId: { exact: this.state.selectedVideoInputId } }
+        : { width: 640, height: 360 }
+      this.state.videoStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false })
     } catch (error) {
       this.showToast('Camera access was denied')
       this.updateCallControls()
