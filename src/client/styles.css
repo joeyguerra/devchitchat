@@ -63,6 +63,41 @@ body {
   flex-shrink: 0;
 }
 
+.active-call-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  background: linear-gradient(90deg, rgba(24, 40, 58, 0.92), rgba(15, 24, 36, 0.92));
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.active-call-meta {
+  display: grid;
+  gap: 2px;
+}
+
+.active-call-room {
+  font-size: var(--font-size-md);
+  letter-spacing: 0.4px;
+}
+
+.active-call-participants {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.active-call-controls {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .topbar-left {
   display: flex;
   align-items: center;
@@ -644,7 +679,7 @@ body.sidebar-resizing {
   font-size: var(--font-size-xl);
 }
 
-.call-controls {
+.chat-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -959,6 +994,15 @@ dialog.modal::backdrop {
   flex-shrink: 0;
 }
 
+.voice-join-room-name {
+  font-size: var(--font-size-lg);
+}
+
+.voice-join-help {
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+}
+
 @keyframes rise {
   from {
     opacity: 0;
@@ -1076,6 +1120,16 @@ dialog.modal::backdrop {
   .text-chat-drawer {
     inset: 10px 10px 10px auto;
     width: min(92vw, 420px);
+  }
+
+  .active-call-bar {
+    padding: 10px;
+    flex-wrap: wrap;
+  }
+
+  .active-call-controls {
+    width: 100%;
+    margin-left: 0;
   }
 
   .mobile-diagnostics {

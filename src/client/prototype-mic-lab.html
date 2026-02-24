@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prototype Mic Lab</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --line: #30363d;
+      --good: #2ea043;
+      --warn: #f0883e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, #1f2937, var(--bg) 60%);
+      color: var(--text);
+      font: 14px/1.4 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .layout {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      gap: 14px;
+    }
+    .panel {
+      background: linear-gradient(180deg, #1b2230, var(--panel));
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 18px;
+    }
+    .hint {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .field { margin: 10px 0; }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    select, input, button {
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #0e1622;
+      color: var(--text);
+    }
+    .row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+    button {
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      background: linear-gradient(180deg, #238636, #1b7f34);
+    }
+    button.secondary {
+      background: linear-gradient(180deg, #4a5568, #3c4859);
+    }
+    button.warn {
+      background: linear-gradient(180deg, #b45309, #92400e);
+    }
+    .status {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      min-height: 40px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: pre-line;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .ok { color: var(--good); }
+    .warn-text { color: var(--warn); }
+    .log {
+      max-height: 220px;
+      overflow: auto;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      white-space: pre-line;
+    }
+    @media (max-width: 860px) {
+      .row { grid-template-columns: 1fr 1fr; }
+      .stats { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="layout">
+    <section class="panel">
+      <h1>Mic Lab</h1>
+      <p class="hint">Local-only mic testing for capture + playback modes. Use headphones to avoid feedback.</p>
+
+      <div class="field">
+        <label for="micSource">Microphone Source</label>
+        <select id="micSource"></select>
+      </div>
+
+      <div class="field">
+        <label for="chunkMs">RequestData interval (ms)</label>
+        <input id="chunkMs" type="number" min="40" max="1000" step="10" value="100">
+      </div>
+
+      <div class="row">
+        <button id="btnMonitor">Direct Monitor</button>
+        <button id="btnBlob">Loopback Blob</button>
+        <button id="btnMse">Loopback MSE</button>
+        <button id="btnStop" class="warn">Stop</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button id="btnRefresh" class="secondary">Refresh Devices</button>
+        <button id="btnClearLog" class="secondary">Clear Log</button>
+        <button id="btnUnlock" class="secondary">Unlock Audio</button>
+        <button id="btnPlaceholder" class="secondary" disabled>Ready</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div id="status" class="status">Idle</div>
+      <div class="stats" style="margin-top:10px;">
+        <div id="sMode" class="stat">mode: idle</div>
+        <div id="sDevice" class="stat">device: unknown</div>
+        <div id="sChunk" class="stat">chunks: 0 | interval: 0ms | avg: 0ms</div>
+        <div id="sSize" class="stat">size: 0B | avg: 0B</div>
+        <div id="sPlay" class="stat">playbacks: 0 | errors: 0</div>
+        <div id="sMime" class="stat">mime: n/a</div>
+      </div>
+      <div id="log" class="log" style="margin-top:10px;"></div>
+    </section>
+  </main>
+
+  <audio id="audioSink" preload="none" controls style="display:none"></audio>
+
+  <script type="module">
+    class AudioPlaybackQueue {
+      constructor(audioElement, onPlayback) {
+        this.audio = audioElement
+        this.onPlayback = onPlayback
+        this.queue = []
+        this.playing = false
+      }
+
+      enqueueBlob(blob) {
+        this.queue.push(URL.createObjectURL(blob))
+        this.playNext()
+      }
+
+      async playNext() {
+        if (this.playing || this.queue.length === 0) return
+        this.playing = true
+        const url = this.queue.shift()
+        this.audio.src = url
+        this.audio.onended = null
+        this.audio.onerror = null
+        const finalize = (ok) => {
+          URL.revokeObjectURL(url)
+          this.playing = false
+          this.onPlayback?.(ok)
+          this.playNext()
+        }
+        try {
+          await this.audio.play()
+          this.audio.onended = () => finalize(true)
+          this.audio.onerror = () => finalize(false)
+        } catch {
+          finalize(false)
+        }
+      }
+
+      reset() {
+        while (this.queue.length > 0) {
+          URL.revokeObjectURL(this.queue.shift())
+        }
+        this.playing = false
+        this.audio.onended = null
+        this.audio.onerror = null
+        this.audio.pause()
+        this.audio.removeAttribute('src')
+      }
+    }
+
+    class AudioMsePlayer {
+      constructor(audioElement, onDebug, onPlayback) {
+        this.audio = audioElement
+        this.onDebug = onDebug
+        this.onPlayback = onPlayback
+        this.mediaSource = null
+        this.sourceBuffer = null
+        this.objectUrl = null
+        this.mime = null
+        this.pending = []
+        this.disabled = false
+      }
+
+      normalizeMime(mime) {
+        return String(mime || '').replace(/;\s*codecs=/i, ';codecs=')
+      }
+
+      canUseMime(mime) {
+        return !this.disabled && Boolean(mime) && typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported(mime)
+      }
+
+      appendChunk(payload, mime) {
+        const normalizedMime = this.normalizeMime(mime)
+        if (!this.canUseMime(normalizedMime)) {
+          return false
+        }
+        if (!this.mediaSource || !this.sourceBuffer || this.mime !== normalizedMime) {
+          this.init(normalizedMime)
+        }
+        const bytes = payload instanceof Uint8Array ? payload : new Uint8Array(payload)
+        this.pending.push(bytes)
+        this.flush()
+        return true
+      }
+
+      init(mime) {
+        this.reset()
+        this.mime = mime
+        this.mediaSource = new MediaSource()
+        this.objectUrl = URL.createObjectURL(this.mediaSource)
+        this.audio.src = this.objectUrl
+        this.mediaSource.addEventListener('sourceopen', () => {
+          try {
+            this.sourceBuffer = this.mediaSource.addSourceBuffer(this.mime)
+            this.sourceBuffer.mode = 'sequence'
+            this.sourceBuffer.addEventListener('updateend', () => this.flush())
+            this.flush()
+          } catch (error) {
+            this.onDebug?.(`mse init failed: ${error.message || 'unknown'}`)
+            this.disable()
+          }
+        }, { once: true })
+      }
+
+      disable() {
+        this.disabled = true
+        this.reset({ keepDisabled: true })
+      }
+
+      flush() {
+        if (!this.sourceBuffer || this.sourceBuffer.updating) return
+        if (!this.mediaSource || this.mediaSource.readyState !== 'open') return
+        const chunk = this.pending.shift()
+        if (!chunk) return
+        try {
+          this.sourceBuffer.appendBuffer(chunk)
+          this.audio.play()
+            .then(() => this.onPlayback?.(true))
+            .catch(() => this.onPlayback?.(false))
+        } catch (error) {
+          this.onDebug?.(`mse append failed: ${error.message || 'unknown'}`)
+          this.disable()
+        }
+      }
+
+      reset({ keepDisabled = false } = {}) {
+        this.pending.splice(0)
+        if (this.sourceBuffer) {
+          try {
+            if (this.sourceBuffer.updating) this.sourceBuffer.abort()
+          } catch {}
+        }
+        this.sourceBuffer = null
+        if (this.mediaSource) {
+          try {
+            if (this.mediaSource.readyState === 'open') this.mediaSource.endOfStream()
+          } catch {}
+        }
+        this.mediaSource = null
+        this.mime = null
+        this.audio.pause()
+        this.audio.removeAttribute('src')
+        if (this.objectUrl) {
+          URL.revokeObjectURL(this.objectUrl)
+          this.objectUrl = null
+        }
+        if (!keepDisabled) {
+          this.disabled = false
+        }
+      }
+    }
+
+    const dom = {
+      micSource: document.querySelector('#micSource'),
+      chunkMs: document.querySelector('#chunkMs'),
+      btnMonitor: document.querySelector('#btnMonitor'),
+      btnBlob: document.querySelector('#btnBlob'),
+      btnMse: document.querySelector('#btnMse'),
+      btnStop: document.querySelector('#btnStop'),
+      btnRefresh: document.querySelector('#btnRefresh'),
+      btnClearLog: document.querySelector('#btnClearLog'),
+      btnUnlock: document.querySelector('#btnUnlock'),
+      status: document.querySelector('#status'),
+      log: document.querySelector('#log'),
+      sMode: document.querySelector('#sMode'),
+      sDevice: document.querySelector('#sDevice'),
+      sChunk: document.querySelector('#sChunk'),
+      sSize: document.querySelector('#sSize'),
+      sPlay: document.querySelector('#sPlay'),
+      sMime: document.querySelector('#sMime'),
+      audioSink: document.querySelector('#audioSink')
+    }
+
+    const state = {
+      mode: 'idle',
+      stream: null,
+      recorder: null,
+      requestTimer: null,
+      chunks: 0,
+      chunkIntervalMs: 0,
+      chunkIntervalAvgMs: 0,
+      lastChunkAt: 0,
+      sizeBytes: 0,
+      sizeAvgBytes: 0,
+      playOk: 0,
+      playErr: 0,
+      mime: 'n/a'
+    }
+
+    const audioQueue = new AudioPlaybackQueue(dom.audioSink, (ok) => {
+      if (ok) state.playOk += 1
+      else state.playErr += 1
+      renderStats()
+    })
+    const audioMse = new AudioMsePlayer(dom.audioSink, log, (ok) => {
+      if (ok) state.playOk += 1
+      else state.playErr += 1
+      renderStats()
+    })
+
+    function log(text) {
+      const line = `${new Date().toLocaleTimeString()} ${text}`
+      dom.log.textContent = `${line}\n${dom.log.textContent}`.trim()
+    }
+
+    function setStatus(text, kind = '') {
+      dom.status.classList.remove('ok', 'warn-text')
+      if (kind) dom.status.classList.add(kind)
+      dom.status.textContent = text
+    }
+
+    function renderStats() {
+      dom.sMode.textContent = `mode: ${state.mode}`
+      const track = state.stream?.getAudioTracks?.()[0]
+      const label = track?.label || 'unknown'
+      const id = track?.getSettings?.().deviceId || 'n/a'
+      dom.sDevice.textContent = `device: ${label} (${id})`
+      dom.sChunk.textContent = `chunks: ${state.chunks} | interval: ${state.chunkIntervalMs}ms | avg: ${state.chunkIntervalAvgMs}ms`
+      dom.sSize.textContent = `size: ${state.sizeBytes}B | avg: ${state.sizeAvgBytes}B`
+      dom.sPlay.textContent = `playbacks: ${state.playOk} | errors: ${state.playErr}`
+      dom.sMime.textContent = `mime: ${state.mime}`
+    }
+
+    function resetMetrics() {
+      state.chunks = 0
+      state.chunkIntervalMs = 0
+      state.chunkIntervalAvgMs = 0
+      state.lastChunkAt = 0
+      state.sizeBytes = 0
+      state.sizeAvgBytes = 0
+      state.playOk = 0
+      state.playErr = 0
+      state.mime = 'n/a'
+      renderStats()
+    }
+
+    function stopAll() {
+      if (state.requestTimer) {
+        clearInterval(state.requestTimer)
+        state.requestTimer = null
+      }
+      state.recorder?.stop()
+      state.recorder = null
+      state.stream?.getTracks().forEach((track) => track.stop())
+      state.stream = null
+      audioQueue.reset()
+      audioMse.reset()
+      dom.audioSink.pause()
+      dom.audioSink.removeAttribute('src')
+      dom.audioSink.srcObject = null
+      state.mode = 'idle'
+      setStatus('Stopped')
+      renderStats()
+    }
+
+    async function enumerateMics() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const audioInputs = devices.filter((d) => d.kind === 'audioinput')
+        const previous = dom.micSource.value
+        dom.micSource.replaceChildren()
+        if (audioInputs.length === 0) {
+          const o = document.createElement('option')
+          o.value = 'default'
+          o.textContent = 'No microphones found'
+          dom.micSource.append(o)
+          return
+        }
+        audioInputs.forEach((d, index) => {
+          const o = document.createElement('option')
+          o.value = d.deviceId
+          o.textContent = d.label || (d.deviceId === 'default' ? 'System default' : `Microphone ${index + 1}`)
+          dom.micSource.append(o)
+        })
+        if (previous && Array.from(dom.micSource.options).some((o) => o.value === previous)) {
+          dom.micSource.value = previous
+        } else {
+          dom.micSource.selectedIndex = 0
+        }
+      } catch (error) {
+        log(`enumerate mics failed: ${error.message || 'unknown error'}`)
+      }
+    }
+
+    async function openMicStream() {
+      const selected = dom.micSource.value || 'default'
+      const audioConstraint = selected === 'default' ? true : { deviceId: { exact: selected } }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraint, video: false })
+      return stream
+    }
+
+    function onChunk(blob) {
+      const now = Date.now()
+      state.chunks += 1
+      state.sizeBytes = blob.size
+      state.sizeAvgBytes = state.sizeAvgBytes > 0
+        ? Math.round((state.sizeAvgBytes * 0.85) + (blob.size * 0.15))
+        : blob.size
+      if (state.lastChunkAt > 0) {
+        state.chunkIntervalMs = now - state.lastChunkAt
+        state.chunkIntervalAvgMs = state.chunkIntervalAvgMs > 0
+          ? Math.round((state.chunkIntervalAvgMs * 0.85) + (state.chunkIntervalMs * 0.15))
+          : state.chunkIntervalMs
+      }
+      state.lastChunkAt = now
+      renderStats()
+    }
+
+    async function startRecorderLoopback(mode) {
+      stopAll()
+      resetMetrics()
+      state.mode = mode
+      try {
+        state.stream = await openMicStream()
+        const preferredMime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : ''
+        state.recorder = new MediaRecorder(state.stream, preferredMime ? { mimeType: preferredMime } : {})
+        state.mime = preferredMime || state.recorder.mimeType || 'audio/webm'
+        state.recorder.addEventListener('dataavailable', (event) => {
+          if (!event.data || event.data.size === 0) return
+          onChunk(event.data)
+          if (mode === 'blob') {
+            audioQueue.enqueueBlob(event.data)
+            return
+          }
+          void event.data.arrayBuffer()
+            .then((buf) => {
+              const usedMse = audioMse.appendChunk(new Uint8Array(buf), event.data.type || state.mime)
+              if (!usedMse) {
+                audioQueue.enqueueBlob(event.data)
+              }
+            })
+            .catch((error) => {
+              log(`audio chunk decode failed: ${error.message || 'unknown error'}`)
+              audioQueue.enqueueBlob(event.data)
+            })
+        })
+        state.recorder.start()
+        const intervalMs = Math.max(40, Number(dom.chunkMs.value) || 100)
+        state.requestTimer = setInterval(() => {
+          if (!state.recorder || state.recorder.state !== 'recording') return
+          try {
+            state.recorder.requestData()
+          } catch (error) {
+            log(`requestData failed: ${error.message || 'unknown error'}`)
+          }
+        }, intervalMs)
+        setStatus(`Running ${mode} loopback`, 'ok')
+        renderStats()
+      } catch (error) {
+        state.mode = 'idle'
+        setStatus(`Failed: ${error.message || 'unknown error'}`, 'warn-text')
+        log(`start ${mode} failed: ${error.message || 'unknown error'}`)
+      }
+    }
+
+    async function startDirectMonitor() {
+      stopAll()
+      resetMetrics()
+      state.mode = 'monitor'
+      try {
+        state.stream = await openMicStream()
+        dom.audioSink.srcObject = state.stream
+        await dom.audioSink.play()
+        setStatus('Running direct monitor', 'ok')
+        renderStats()
+      } catch (error) {
+        state.mode = 'idle'
+        setStatus(`Failed: ${error.message || 'unknown error'}`, 'warn-text')
+        log(`start monitor failed: ${error.message || 'unknown error'}`)
+      }
+    }
+
+    dom.btnMonitor.addEventListener('click', startDirectMonitor)
+    dom.btnBlob.addEventListener('click', () => startRecorderLoopback('blob'))
+    dom.btnMse.addEventListener('click', () => startRecorderLoopback('mse'))
+    dom.btnStop.addEventListener('click', stopAll)
+    dom.btnRefresh.addEventListener('click', enumerateMics)
+    dom.btnClearLog.addEventListener('click', () => { dom.log.textContent = '' })
+    dom.btnUnlock.addEventListener('click', async () => {
+      try {
+        await dom.audioSink.play()
+      } catch {}
+      dom.audioSink.pause()
+      dom.audioSink.removeAttribute('src')
+      setStatus('Audio unlocked (gesture received)', 'ok')
+    })
+    navigator.mediaDevices?.addEventListener?.('devicechange', enumerateMics)
+
+    setStatus('Idle')
+    renderStats()
+    enumerateMics()
+  </script>
+</body>
+</html>

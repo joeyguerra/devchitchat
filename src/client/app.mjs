@@ -50,6 +50,16 @@ const dom = {
   signinHint: qs('#signin-hint'),
   toast: qs('#toast'),
   mobileDiagnostics: qs('#mobile-diagnostics'),
+  activeCallBar: qs('#active-call-bar'),
+  callBarChannelLabel: qs('#call-bar-channel-label'),
+  callBarParticipants: qs('#call-bar-participants'),
+  callBarMicToggleBtn: qs('#call-bar-mic-toggle'),
+  callBarCameraToggleBtn: qs('#call-bar-camera-toggle'),
+  callBarScreenToggleBtn: qs('#call-bar-screen-toggle'),
+  callBarDeviceSettingsBtn: qs('#call-bar-device-settings'),
+  callBarOpenStageBtn: qs('#call-bar-open-stage'),
+  callBarLeaveBtn: qs('#call-bar-leave'),
+  callBarEndCallBtn: qs('#call-bar-end-call'),
   layout: qs('.layout'),
   chatCard: qs('.chat'),
   mobileMenuBtn: qs('#mobile-menu-btn'),
@@ -77,13 +87,21 @@ const dom = {
   modalHubVisibility: qs('#modal-hub-visibility'),
   modalCreateHubBtn: qs('#modal-create-hub'),
   modalHubCancelBtn: qs('#modal-hub-cancel'),
-  startCallBtn: qs('#start-call'),
-  toggleMediaBtn: qs('#toggle-media'),
-  shareScreenBtn: qs('#share-screen'),
-  hangupCallBtn: qs('#hangup-call'),
   addMemberBtn: qs('#add-member'),
   editChannelBtn: qs('#edit-channel-btn'),
   voiceHint: qs('#voice-hint'),
+  joinVoiceModal: qs('#join-voice-modal'),
+  joinVoiceCloseBtn: qs('#join-voice-close'),
+  joinVoiceChannelName: qs('#join-voice-channel-name'),
+  joinMutedBtn: qs('#join-muted'),
+  joinWithMicBtn: qs('#join-with-mic'),
+  joinCancelBtn: qs('#join-cancel'),
+  deviceSettingsModal: qs('#device-settings-modal'),
+  deviceSettingsCloseBtn: qs('#device-settings-close'),
+  deviceSettingsRefreshBtn: qs('#device-settings-refresh'),
+  deviceSettingsDoneBtn: qs('#device-settings-done'),
+  audioInputSelect: qs('#audio-input-select'),
+  videoInputSelect: qs('#video-input-select'),
   roomNameInput: qs('#room-name'),
   roomKindSelect: qs('#room-kind'),
   createRoomModal: qs('#create-room-modal'),
@@ -124,6 +142,7 @@ const channelModalState = {
   mode: 'create',
   channelId: null
 }
+let pendingVoiceJoinChannelId = null
 
 const isMobileViewport = () => window.innerWidth <= MOBILE_SIDEBAR_BREAKPOINT
 
@@ -797,9 +816,6 @@ const setupMessageSubscriptions = () => {
         break
       case 'rtc.call_event':
         callStateService.mapSet(msg.body.channel_id, msg.body.call_id, 'rtc.call_event')
-        if (!state.callId && isVoiceChannel(state.currentChannelId) && state.currentChannelId === msg.body.channel_id) {
-          ensureVoiceStateForChannel(state.currentChannelId)
-        }
         markHandled()
         break
       case 'rtc.call':
@@ -809,6 +825,7 @@ const setupMessageSubscriptions = () => {
           ice: msg.body.ice,
           source: 'rtc.call'
         })
+        pendingVoiceJoinChannelId = null
         send('rtc.join', { call_id: state.callId, peer_meta: { device: 'browser', capabilities: { screen: true } } })
         markHandled()
         break
@@ -832,7 +849,7 @@ const setupMessageSubscriptions = () => {
           })
         }
         ensurePeers(msg.body.peers || [])
-        if (state.voiceActive) {
+        if (state.voiceActive && !state.micMuted) {
           startAudio()
         }
         markHandled()
@@ -1153,33 +1170,140 @@ const renderChannels = () => {
 
 const leaveCurrentVoiceCall = () => {
   if (!state.callId) {
+    pendingVoiceJoinChannelId = null
+    callStateService.setSession({ voiceActive: false, source: 'voice_leave_idle' })
     return
   }
+  pendingVoiceJoinChannelId = null
   if (state.selfPeerId) {
     send('rtc.leave', { call_id: state.callId, peer_id: state.selfPeerId })
   }
   teardownCall()
 }
 
-const ensureVoiceStateForChannel = (channelId) => {
+const openJoinVoiceModal = (channelId) => {
+  if (!dom.joinVoiceModal) {
+    return
+  }
+  const channel = state.channels.find((entry) => entry.channel_id === channelId)
+  if (dom.joinVoiceChannelName) {
+    dom.joinVoiceChannelName.textContent = channel?.name || channelId || 'Voice channel'
+  }
+  pendingVoiceJoinChannelId = channelId
+  if (dom.joinVoiceModal.open) {
+    return
+  }
+  dom.joinVoiceModal.showModal()
+}
+
+const closeJoinVoiceModal = () => {
+  pendingVoiceJoinChannelId = null
+  if (!dom.joinVoiceModal?.open) {
+    return
+  }
+  dom.joinVoiceModal.close()
+}
+
+const populateDeviceSelect = (selectEl, devices, selectedId, fallbackLabel) => {
+  if (!selectEl) {
+    return
+  }
+  const previousValue = selectedId || ''
+  selectEl.innerHTML = ''
+  const defaultOption = document.createElement('option')
+  defaultOption.value = ''
+  defaultOption.textContent = 'System default'
+  selectEl.appendChild(defaultOption)
+
+  devices.forEach((device, index) => {
+    const option = document.createElement('option')
+    option.value = device.deviceId
+    option.textContent = device.label || `${fallbackLabel} ${index + 1}`
+    selectEl.appendChild(option)
+  })
+
+  const hasSelected = devices.some((device) => device.deviceId === previousValue)
+  selectEl.value = hasSelected ? previousValue : ''
+}
+
+const refreshMediaDeviceOptions = async () => {
+  if (!navigator.mediaDevices?.enumerateDevices) {
+    showToast('Device selection is not supported in this browser')
+    return
+  }
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices()
+    const audioInputs = devices.filter((device) => device.kind === 'audioinput')
+    const videoInputs = devices.filter((device) => device.kind === 'videoinput')
+    populateDeviceSelect(dom.audioInputSelect, audioInputs, state.selectedAudioInputId, 'Microphone')
+    populateDeviceSelect(dom.videoInputSelect, videoInputs, state.selectedVideoInputId, 'Camera')
+  } catch (error) {
+    showToast('Unable to list media devices')
+  }
+}
+
+const openDeviceSettingsModal = async () => {
+  if (!dom.deviceSettingsModal) {
+    return
+  }
+  await refreshMediaDeviceOptions()
+  if (!dom.deviceSettingsModal.open) {
+    dom.deviceSettingsModal.showModal()
+  }
+}
+
+const closeDeviceSettingsModal = () => {
+  if (!dom.deviceSettingsModal?.open) {
+    return
+  }
+  dom.deviceSettingsModal.close()
+}
+
+const applyMediaDeviceSelections = async () => {
+  const nextAudioId = dom.audioInputSelect?.value || ''
+  const nextVideoId = dom.videoInputSelect?.value || ''
+  const audioChanged = nextAudioId !== state.selectedAudioInputId
+  const videoChanged = nextVideoId !== state.selectedVideoInputId
+
+  state.selectedAudioInputId = nextAudioId
+  state.selectedVideoInputId = nextVideoId
+  localStorage.setItem('media.audio_input_id', nextAudioId)
+  localStorage.setItem('media.video_input_id', nextVideoId)
+
+  if (audioChanged && state.audioStream && state.callId) {
+    stopAudio()
+    if (!state.micMuted) {
+      await startAudio()
+    }
+  }
+  if (videoChanged && state.videoStream && state.callId) {
+    stopVideo()
+    await startVideo()
+  }
+}
+
+const joinVoiceChannel = (channelId, { withMic } = { withMic: false }) => {
   if (!isVoiceChannel(channelId)) {
-    // Keep current voice session alive while browsing text channels.
-    // A voice session only resets when switching to a different voice channel.
     return
   }
 
-  callStateService.setSession({ voiceActive: true, source: 'ensure_voice_state' })
+  closeJoinVoiceModal()
+  callStateService.setSession({ voiceActive: true, source: 'join_voice_channel' })
+  state.micMuted = !withMic
+
   if (state.callId && state.callChannelId === channelId) {
     callStateService.markUpdated('voice_channel_already_active')
+    if (!state.micMuted && !state.audioStream) {
+      startAudio()
+    }
     return
   }
 
   if (state.callId && state.callChannelId !== channelId) {
     leaveCurrentVoiceCall()
+    callStateService.setSession({ voiceActive: true, source: 'switch_voice_channel' })
+    state.micMuted = !withMic
   }
-
-  // Voice sessions start muted by default until the user explicitly unmutes.
-  state.micMuted = true
 
   const existingCall = state.channelCallMap.get(channelId)
   if (existingCall) {
@@ -1190,9 +1314,30 @@ const ensureVoiceStateForChannel = (channelId) => {
     })
     send('rtc.join', { call_id: existingCall, peer_meta: { device: 'browser', capabilities: { screen: true } } })
   } else {
+    pendingVoiceJoinChannelId = channelId
+    callStateService.setSession({ callChannelId: channelId, source: 'voice_waiting_call_create' })
     send('rtc.call_create', { channel_id: channelId, kind: 'mesh', media: { audio: true, video: true } })
   }
-  callStateService.markUpdated('ensure_voice_state')
+  callStateService.markUpdated('join_voice_channel')
+}
+
+const ensureVoiceStateForChannel = (channelId) => {
+  if (!isVoiceChannel(channelId)) {
+    // Keep current voice session alive while browsing text channels.
+    // A voice session only resets when switching to a different voice channel.
+    return
+  }
+
+  if (!state.voiceActive) {
+    return
+  }
+
+  if (state.callId && state.callChannelId === channelId) {
+    callStateService.markUpdated('voice_channel_already_active')
+    return
+  }
+
+  joinVoiceChannel(channelId, { withMic: !state.micMuted })
 }
 
 /**
@@ -1200,6 +1345,7 @@ const ensureVoiceStateForChannel = (channelId) => {
  * @param {string} channelId
  */
 const setActiveChannel = (channelId) => {
+  const wasCurrentVoice = isVoiceChannel(state.currentChannelId)
   store.dispatch({ type: 'channels/setCurrent', channelId })
   updateChannelLayoutMode()
   dom.activeRoom.textContent = state.channels.find((channel) => channel.channel_id === channelId)?.name || channelId
@@ -1208,7 +1354,16 @@ const setActiveChannel = (channelId) => {
     store.dispatch({ type: 'messages/set', channelId, messages: cached })
   }
   send('channel.join', { channel_id: channelId })
-  ensureVoiceStateForChannel(channelId)
+  if (isVoiceChannel(channelId)) {
+    const inSameActiveCall = Boolean(state.callId && state.callChannelId === channelId)
+    if (!inSameActiveCall && (!state.voiceActive || state.callChannelId !== channelId)) {
+      openJoinVoiceModal(channelId)
+    } else {
+      ensureVoiceStateForChannel(channelId)
+    }
+  } else if (wasCurrentVoice) {
+    closeJoinVoiceModal()
+  }
   callStateService.markUpdated('active_channel')
   setSidebarMenuOpen(false)
 }
@@ -1370,6 +1525,7 @@ const addStreamTile = (stream, label, isLocal, ownerPeerId = null) => {
   }
   const video = document.createElement('video')
   video.autoplay = true
+  video.controls = true
   video.muted = isLocal
   video.playsInline = true
   video.srcObject = stream
@@ -1488,6 +1644,15 @@ const stopAudio = () => {
 }
 
 const toggleMicMute = () => {
+  if (!state.callId) {
+    return
+  }
+  if (!state.audioStream) {
+    state.micMuted = false
+    startAudio()
+    callStateService.markUpdated('mic_requested_on_toggle')
+    return
+  }
   rtcCallService.toggleMicMute()
 }
 
@@ -1834,16 +1999,16 @@ const setupEventListeners = () => {
     send('search.query', { scope: { kind: 'channel', channel_id: state.currentChannelId }, q, limit: 20 })
   })
 
-  // Voice and media listeners
-  dom.startCallBtn.addEventListener('click', () => {
+  // Voice call bar listeners
+  dom.callBarMicToggleBtn.addEventListener('click', () => {
     toggleMicMute()
   })
 
-  dom.hangupCallBtn.addEventListener('click', () => {
+  dom.callBarLeaveBtn.addEventListener('click', () => {
     leaveCurrentVoiceCall()
   })
 
-  dom.toggleMediaBtn.addEventListener('click', () => {
+  dom.callBarCameraToggleBtn.addEventListener('click', () => {
     if (!state.callId) {
       return
     }
@@ -1854,7 +2019,7 @@ const setupEventListeners = () => {
     }
   })
 
-  dom.shareScreenBtn.addEventListener('click', () => {
+  dom.callBarScreenToggleBtn.addEventListener('click', () => {
     if (!state.callId) {
       return
     }
@@ -1864,6 +2029,85 @@ const setupEventListeners = () => {
       startScreenShare()
     }
   })
+
+  dom.callBarDeviceSettingsBtn.addEventListener('click', () => {
+    openDeviceSettingsModal()
+  })
+
+  dom.callBarOpenStageBtn.addEventListener('click', () => {
+    if (!state.callChannelId) {
+      return
+    }
+    if (state.currentChannelId !== state.callChannelId) {
+      setActiveChannel(state.callChannelId)
+    }
+  })
+
+  dom.callBarEndCallBtn.addEventListener('click', () => {
+    if (!state.callId) {
+      return
+    }
+    const confirmed = window.confirm('End call for everyone?')
+    if (!confirmed) {
+      return
+    }
+    send('rtc.end_call', { call_id: state.callId })
+  })
+
+  // Join voice modal listeners
+  dom.joinVoiceCloseBtn.addEventListener('click', closeJoinVoiceModal)
+  dom.joinCancelBtn.addEventListener('click', closeJoinVoiceModal)
+  dom.joinMutedBtn.addEventListener('click', () => {
+    const channelId = pendingVoiceJoinChannelId || state.currentChannelId
+    if (!channelId) {
+      closeJoinVoiceModal()
+      return
+    }
+    joinVoiceChannel(channelId, { withMic: false })
+  })
+  dom.joinWithMicBtn.addEventListener('click', () => {
+    const channelId = pendingVoiceJoinChannelId || state.currentChannelId
+    if (!channelId) {
+      closeJoinVoiceModal()
+      return
+    }
+    joinVoiceChannel(channelId, { withMic: true })
+  })
+
+  dom.joinVoiceModal.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeJoinVoiceModal()
+    }
+  })
+
+  // Media device modal listeners
+  dom.deviceSettingsCloseBtn.addEventListener('click', closeDeviceSettingsModal)
+  dom.deviceSettingsDoneBtn.addEventListener('click', async () => {
+    await applyMediaDeviceSelections()
+    closeDeviceSettingsModal()
+  })
+  dom.deviceSettingsRefreshBtn.addEventListener('click', async () => {
+    await refreshMediaDeviceOptions()
+  })
+  dom.audioInputSelect.addEventListener('change', async () => {
+    await applyMediaDeviceSelections()
+  })
+  dom.videoInputSelect.addEventListener('change', async () => {
+    await applyMediaDeviceSelections()
+  })
+  dom.deviceSettingsModal.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeDeviceSettingsModal()
+    }
+  })
+
+  if (navigator.mediaDevices?.addEventListener) {
+    navigator.mediaDevices.addEventListener('devicechange', () => {
+      if (dom.deviceSettingsModal?.open) {
+        refreshMediaDeviceOptions()
+      }
+    })
+  }
 }
 
 // Initialize app

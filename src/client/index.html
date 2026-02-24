@@ -28,6 +28,22 @@
           <button id='logout-btn' class='logout-btn hidden' title='Sign out'>✕</button>
         </div>
       </header>
+        <section id='active-call-bar' class='active-call-bar hidden' aria-label='Active call controls'>
+        <div class='active-call-meta'>
+          <div class='label'>Active Call</div>
+          <div id='call-bar-channel-label' class='active-call-room'>Not connected</div>
+        </div>
+        <div id='call-bar-participants' class='active-call-participants'>0 on call</div>
+        <div class='active-call-controls'>
+          <button id='call-bar-mic-toggle' class='icon-control' aria-label='Mute or unmute microphone' title='Mute or unmute microphone'>🎤</button>
+          <button id='call-bar-camera-toggle' class='icon-control' aria-label='Toggle camera' title='Toggle camera'>📷</button>
+          <button id='call-bar-screen-toggle' class='icon-control' aria-label='Toggle screen share' title='Toggle screen share'>🖥</button>
+          <button id='call-bar-device-settings' title='Select microphone and camera'>Devices</button>
+          <button id='call-bar-open-stage' title='Back to call channel'>Back to call</button>
+          <button id='call-bar-leave'>Leave</button>
+          <button id='call-bar-end-call' class='hidden'>End call</button>
+        </div>
+      </section>
 
       <section class='card auth' id='auth-card' aria-label='Auth'>
         <div class='auth-tabs'>
@@ -183,22 +199,63 @@
           </div>
         </dialog>
 
+        <dialog id='join-voice-modal' class='modal'>
+          <div class='modal-content'>
+            <div class='modal-header'>
+              <h2>Join voice channel</h2>
+              <button id='join-voice-close' class='icon-btn close-btn' aria-label='Close'>×</button>
+            </div>
+            <div class='modal-body'>
+              <div id='join-voice-channel-name' class='voice-join-room-name'>Channel</div>
+              <div class='voice-join-help'>Join muted by default, then unmute when ready.</div>
+            </div>
+            <div class='modal-footer'>
+              <button id='join-cancel'>Cancel</button>
+              <button id='join-muted'>Join muted</button>
+              <button id='join-with-mic' class='primary'>Join with mic</button>
+            </div>
+          </div>
+        </dialog>
+
+        <dialog id='device-settings-modal' class='modal'>
+          <div class='modal-content'>
+            <div class='modal-header'>
+              <h2>Media devices</h2>
+              <button id='device-settings-close' class='icon-btn close-btn' aria-label='Close'>×</button>
+            </div>
+            <div class='modal-body'>
+              <div class='form-group'>
+                <label for='audio-input-select'>Microphone</label>
+                <select id='audio-input-select'>
+                  <option value=''>System default</option>
+                </select>
+              </div>
+              <div class='form-group'>
+                <label for='video-input-select'>Camera</label>
+                <select id='video-input-select'>
+                  <option value=''>System default</option>
+                </select>
+              </div>
+            </div>
+            <div class='modal-footer'>
+              <button id='device-settings-refresh'>Refresh</button>
+              <button id='device-settings-done' class='primary'>Done</button>
+            </div>
+          </div>
+        </dialog>
+
         <section class='card chat'>
           <div class='chat-header'>
             <div>
               <div class='label'>Channel</div>
               <div id='active-room' class='room-name'>None</div>
             </div>
-            <div class='call-controls'>
-              <button id='start-call' class='icon-control voice-only' aria-label='Mute or unmute microphone' title='Mute or unmute microphone'>🎤</button>
-              <button id='toggle-media' class='icon-control voice-only' aria-label='Toggle camera' title='Toggle camera'>📷</button>
-              <button id='share-screen' class='icon-control voice-only' aria-label='Toggle screen share' title='Toggle screen share'>🖥</button>
-              <button id='hangup-call'>Hang up</button>
+            <div class='chat-actions'>
               <button id='add-member'>Add member</button>
               <button id='edit-channel-btn' class='icon-control' aria-label='Edit channel settings' title='Edit channel settings'>⚙</button>
             </div>
           </div>
-          <div class='voice-hint' id='voice-hint'>Select a voice channel to auto-join with your mic</div>
+          <div class='voice-hint' id='voice-hint'>Select a voice channel to join call controls</div>
           <div id='streams' class='streams media-stage'></div>
           <div id='streams-empty' class='streams-empty'>No live streams yet</div>
           <button id='text-chat-toggle' class='text-chat-toggle' aria-expanded='false' aria-controls='text-chat-drawer'><</button>

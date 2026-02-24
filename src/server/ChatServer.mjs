@@ -50,11 +50,24 @@ export class ChatServer {
     this.httpServer = tls
       ? https.createServer(tls, this.handleHttp.bind(this))
       : http.createServer(this.handleHttp.bind(this))
-    this.wsServer = new WebSocketServer({ server: this.httpServer, path: '/ws' })
+    this.wsServer = new WebSocketServer({ noServer: true })
+    this.streamControlWsServer = new WebSocketServer({ noServer: true })
+    this.streamMediaWsServer = new WebSocketServer({ noServer: true })
 
     this.wsServer.on('connection', (ws) => this.handleConnection(ws))
+    this.streamControlWsServer.on('connection', (ws) => this.handleStreamControlConnection(ws))
+    this.streamMediaWsServer.on('connection', (ws) => this.handleStreamMediaConnection(ws))
+    this.httpServer.on('upgrade', (req, socket, head) => this.handleUpgrade(req, socket, head))
 
     this.signalingService.onEvent((event) => this.handleSignalingEvent(event))
+
+    this.streamControlConnections = new Map()
+    this.streamMediaConnections = new Map()
+    this.streamBroadcasters = new Map()
+    this.streamControlViewers = new Map()
+    this.streamMediaViewers = new Map()
+    this.streamStates = new Map()
+    this.streamControlByClientId = new Map()
 
     this.ensureBootstrap()
   }
@@ -84,7 +97,39 @@ export class ChatServer {
 
   close() {
     this.wsServer.close()
+    this.streamControlWsServer.close()
+    this.streamMediaWsServer.close()
     this.httpServer.close()
+  }
+
+  handleUpgrade(req, socket, head) {
+    const host = req.headers.host || 'localhost'
+    const pathname = new URL(req.url || '/', `http://${host}`).pathname
+    if (pathname === '/ws') {
+      this.wsServer.handleUpgrade(req, socket, head, (ws) => {
+        this.wsServer.emit('connection', ws, req)
+      })
+      return
+    }
+    if (pathname === '/ws-stream-control') {
+      this.streamControlWsServer.handleUpgrade(req, socket, head, (ws) => {
+        this.streamControlWsServer.emit('connection', ws, req)
+      })
+      return
+    }
+    if (pathname === '/ws-stream-media') {
+      this.streamMediaWsServer.handleUpgrade(req, socket, head, (ws) => {
+        this.streamMediaWsServer.emit('connection', ws, req)
+      })
+      return
+    }
+    if (pathname === '/ws-stream') {
+      this.streamControlWsServer.handleUpgrade(req, socket, head, (ws) => {
+        this.streamControlWsServer.emit('connection', ws, req)
+      })
+      return
+    }
+    socket.destroy()
   }
 
   handleHttp(req, res) {
@@ -93,6 +138,9 @@ export class ChatServer {
     let filePath = path.join(CLIENT_ROOT, url.pathname)
     if (url.pathname === '/') {
       filePath = path.join(CLIENT_ROOT, 'index.html')
+    }
+    if (url.pathname === '/prototype-stream') {
+      filePath = path.join(CLIENT_ROOT, 'prototype-stream.html')
     }
 
     if (!filePath.startsWith(CLIENT_ROOT)) {
@@ -125,6 +173,308 @@ export class ChatServer {
 
     ws.on('message', (data) => this.handleMessage(connectionId, data))
     ws.on('close', () => this.handleClose(connectionId))
+  }
+
+  handleStreamControlConnection(ws) {
+    const streamConnectionId = newId('stream_ctrl_conn')
+    this.streamControlConnections.set(streamConnectionId, {
+      id: streamConnectionId,
+      ws,
+      stream: null,
+      role: null,
+      clientId: null
+    })
+
+    ws.on('message', (data, isBinary) => this.handleStreamControlMessage(streamConnectionId, data, isBinary))
+    ws.on('close', () => this.handleStreamControlClose(streamConnectionId))
+  }
+
+  handleStreamMediaConnection(ws) {
+    const streamConnectionId = newId('stream_media_conn')
+    this.streamMediaConnections.set(streamConnectionId, {
+      id: streamConnectionId,
+      ws,
+      stream: null,
+      role: null,
+      clientId: null
+    })
+
+    ws.on('message', (data, isBinary) => this.handleStreamMediaMessage(streamConnectionId, data, isBinary))
+    ws.on('close', () => this.handleStreamMediaClose(streamConnectionId))
+  }
+
+  handleStreamControlMessage(streamConnectionId, data, isBinary) {
+    const connection = this.streamControlConnections.get(streamConnectionId)
+    if (!connection) {
+      return
+    }
+
+    if (isBinary) {
+      return
+    }
+
+    let msg = null
+    try {
+      msg = JSON.parse(data.toString())
+    } catch (error) {
+      this.sendStream(streamConnectionId, { t: 'error', body: { message: 'Invalid JSON' } })
+      return
+    }
+
+    if (msg.t === 'join') {
+      this.handleStreamJoin(connection, msg)
+      return
+    }
+
+    this.sendStream(streamConnectionId, { t: 'error', body: { message: 'Unknown message type' } })
+  }
+
+  handleStreamMediaMessage(streamConnectionId, data, isBinary) {
+    const connection = this.streamMediaConnections.get(streamConnectionId)
+    if (!connection) {
+      return
+    }
+
+    if (isBinary) {
+      this.handleStreamBinary(connection, data)
+      return
+    }
+
+    let msg = null
+    try {
+      msg = JSON.parse(data.toString())
+    } catch (error) {
+      this.sendStreamMedia(streamConnectionId, { t: 'error', body: { message: 'Invalid JSON' } })
+      return
+    }
+
+    if (msg.t === 'join') {
+      this.handleStreamMediaJoin(connection, msg)
+      return
+    }
+
+    this.sendStreamMedia(streamConnectionId, { t: 'error', body: { message: 'Unknown message type' } })
+  }
+
+  handleStreamBinary(connection, data) {
+    if (!connection.stream || connection.role !== 'broadcaster' || !connection.clientId) {
+      this.sendStreamMedia(connection.id, { t: 'error', body: { message: 'Join as broadcaster first' } })
+      return
+    }
+    const broadcasterControlId = this.streamBroadcasters.get(connection.stream)
+    const controlConnectionId = this.streamControlByClientId.get(connection.clientId)
+    if (!broadcasterControlId || !controlConnectionId || broadcasterControlId !== controlConnectionId) {
+      this.sendStreamMedia(connection.id, { t: 'error', body: { message: 'Broadcaster control session is not active' } })
+      return
+    }
+    const viewers = this.streamMediaViewers.get(connection.stream)
+    if (!viewers || viewers.size === 0) {
+      return
+    }
+    for (const viewerId of viewers) {
+      this.sendStreamBinary(viewerId, data)
+    }
+  }
+
+  handleStreamJoin(connection, msg) {
+    const role = msg.body?.role
+    const stream = (msg.body?.stream || 'default').trim()
+    const clientId = (msg.body?.client_id || '').trim()
+    if (!stream) {
+      this.sendStreamControl(connection.id, { t: 'error', body: { message: 'Stream name is required' } })
+      return
+    }
+    if (!['broadcaster', 'viewer'].includes(role)) {
+      this.sendStreamControl(connection.id, { t: 'error', body: { message: 'Invalid role' } })
+      return
+    }
+    if (!clientId) {
+      this.sendStreamControl(connection.id, { t: 'error', body: { message: 'client_id is required' } })
+      return
+    }
+
+    const previousStream = connection.stream
+    const previousRole = connection.role
+    const previousClientId = connection.clientId
+    if (previousClientId && this.streamControlByClientId.get(previousClientId) === connection.id) {
+      this.streamControlByClientId.delete(previousClientId)
+    }
+    this.removeStreamMembership(connection)
+    if (previousRole === 'broadcaster' && previousStream) {
+      this.updateStreamState(previousStream, 'idle')
+      this.broadcastStreamControl(previousStream, {
+        t: 'stream.peer_event',
+        body: {
+          stream: previousStream,
+          role: 'broadcaster',
+          kind: 'leave'
+        }
+      })
+    }
+    connection.stream = stream
+    connection.role = role
+    connection.clientId = clientId
+    this.streamControlByClientId.set(clientId, connection.id)
+
+    if (role === 'broadcaster') {
+      const existingBroadcasterId = this.streamBroadcasters.get(stream)
+      if (existingBroadcasterId && existingBroadcasterId !== connection.id) {
+        this.sendStreamControl(existingBroadcasterId, {
+          t: 'status',
+          body: { message: 'Disconnected: another broadcaster joined this stream' }
+        })
+        const existingBroadcaster = this.streamControlConnections.get(existingBroadcasterId)
+        if (existingBroadcaster) {
+          if (existingBroadcaster.clientId && this.streamControlByClientId.get(existingBroadcaster.clientId) === existingBroadcaster.id) {
+            this.streamControlByClientId.delete(existingBroadcaster.clientId)
+          }
+          this.removeStreamMembership(existingBroadcaster)
+          existingBroadcaster.stream = null
+          existingBroadcaster.role = null
+          existingBroadcaster.clientId = null
+        }
+        this.updateStreamState(stream, 'idle')
+        this.broadcastStreamControl(stream, {
+          t: 'stream.peer_event',
+          body: {
+            stream,
+            role: 'broadcaster',
+            kind: 'leave'
+          }
+        })
+      }
+      this.streamBroadcasters.set(stream, connection.id)
+      this.updateStreamState(stream, 'live')
+      this.broadcastStreamControl(stream, {
+        t: 'stream.peer_event',
+        body: {
+          stream,
+          role: 'broadcaster',
+          kind: 'join'
+        }
+      })
+    } else {
+      if (!this.streamControlViewers.has(stream)) {
+        this.streamControlViewers.set(stream, new Set())
+      }
+      this.streamControlViewers.get(stream).add(connection.id)
+      if (this.streamBroadcasters.has(stream)) {
+        this.sendStreamControl(connection.id, {
+          t: 'stream.peer_event',
+          body: {
+            stream,
+            role: 'broadcaster',
+            kind: 'join'
+          }
+        })
+      }
+    }
+
+    this.sendStreamControl(connection.id, { t: 'joined', body: { role, stream, client_id: clientId } })
+    this.sendStreamControl(connection.id, { t: 'stream.state', body: this.getStreamState(stream) })
+  }
+
+  handleStreamMediaJoin(connection, msg) {
+    const role = msg.body?.role
+    const stream = (msg.body?.stream || 'default').trim()
+    const clientId = (msg.body?.client_id || '').trim()
+    if (!stream) {
+      this.sendStreamMedia(connection.id, { t: 'error', body: { message: 'Stream name is required' } })
+      return
+    }
+    if (!['broadcaster', 'viewer'].includes(role)) {
+      this.sendStreamMedia(connection.id, { t: 'error', body: { message: 'Invalid role' } })
+      return
+    }
+    if (!clientId) {
+      this.sendStreamMedia(connection.id, { t: 'error', body: { message: 'client_id is required' } })
+      return
+    }
+
+    this.removeStreamMediaMembership(connection)
+    connection.stream = stream
+    connection.role = role
+    connection.clientId = clientId
+
+    if (role === 'viewer') {
+      if (!this.streamMediaViewers.has(stream)) {
+        this.streamMediaViewers.set(stream, new Set())
+      }
+      this.streamMediaViewers.get(stream).add(connection.id)
+    }
+
+    this.sendStreamMedia(connection.id, { t: 'joined', body: { role, stream, client_id: clientId } })
+  }
+
+  handleStreamControlClose(streamConnectionId) {
+    const connection = this.streamControlConnections.get(streamConnectionId)
+    if (!connection) {
+      return
+    }
+    const wasBroadcaster = connection.role === 'broadcaster'
+    const stream = connection.stream
+    if (connection.clientId && this.streamControlByClientId.get(connection.clientId) === connection.id) {
+      this.streamControlByClientId.delete(connection.clientId)
+    }
+    this.removeStreamMembership(connection)
+    if (wasBroadcaster && stream) {
+      this.updateStreamState(stream, 'idle')
+      this.broadcastStreamControl(stream, {
+        t: 'stream.peer_event',
+        body: {
+          stream,
+          role: 'broadcaster',
+          kind: 'leave'
+        }
+      })
+    }
+    this.streamControlConnections.delete(streamConnectionId)
+  }
+
+  handleStreamMediaClose(streamConnectionId) {
+    const connection = this.streamMediaConnections.get(streamConnectionId)
+    if (!connection) {
+      return
+    }
+    this.removeStreamMediaMembership(connection)
+    this.streamMediaConnections.delete(streamConnectionId)
+  }
+
+  removeStreamMembership(connection) {
+    if (!connection.stream || !connection.role) {
+      return
+    }
+    if (connection.role === 'broadcaster') {
+      const broadcasterId = this.streamBroadcasters.get(connection.stream)
+      if (broadcasterId === connection.id) {
+        this.streamBroadcasters.delete(connection.stream)
+      }
+      return
+    }
+    if (connection.role === 'viewer') {
+      const viewers = this.streamControlViewers.get(connection.stream)
+      if (viewers) {
+        viewers.delete(connection.id)
+        if (viewers.size === 0) {
+          this.streamControlViewers.delete(connection.stream)
+        }
+      }
+    }
+  }
+
+  removeStreamMediaMembership(connection) {
+    if (!connection.stream || !connection.role) {
+      return
+    }
+    if (connection.role === 'viewer') {
+      const viewers = this.streamMediaViewers.get(connection.stream)
+      if (viewers) {
+        viewers.delete(connection.id)
+        if (viewers.size === 0) {
+          this.streamMediaViewers.delete(connection.stream)
+        }
+      }
+    }
   }
 
   handleClose(connectionId) {
@@ -1257,6 +1607,107 @@ export class ChatServer {
       ...payload
     }
     connection.ws.send(JSON.stringify(message))
+  }
+
+  sendStreamControl(streamConnectionId, payload) {
+    const connection = this.streamControlConnections.get(streamConnectionId)
+    if (!connection) {
+      return
+    }
+    connection.ws.send(
+      JSON.stringify({
+        v: 1,
+        id: newId('stream_s'),
+        ts: Date.now(),
+        ...payload
+      })
+    )
+  }
+
+  sendStreamMedia(streamConnectionId, payload) {
+    const connection = this.streamMediaConnections.get(streamConnectionId)
+    if (!connection) {
+      return
+    }
+    connection.ws.send(
+      JSON.stringify({
+        v: 1,
+        id: newId('stream_m_s'),
+        ts: Date.now(),
+        ...payload
+      })
+    )
+  }
+
+  sendStreamBinary(streamConnectionId, data) {
+    const connection = this.streamMediaConnections.get(streamConnectionId)
+    if (!connection) {
+      return
+    }
+    connection.ws.send(data, { binary: true })
+  }
+
+  broadcastStreamControl(stream, payload) {
+    const broadcasterId = this.streamBroadcasters.get(stream)
+    if (broadcasterId) {
+      this.sendStreamControl(broadcasterId, payload)
+    }
+    const viewers = this.streamControlViewers.get(stream)
+    if (!viewers) {
+      return
+    }
+    for (const viewerId of viewers) {
+      this.sendStreamControl(viewerId, payload)
+    }
+  }
+
+  getStreamState(stream) {
+    const state = this.streamStates.get(stream) || {
+      state: 'idle',
+      started_at: null,
+      ended_at: null
+    }
+    return {
+      stream,
+      state: state.state,
+      started_at: state.started_at,
+      ended_at: state.ended_at,
+      broadcaster_present: this.streamBroadcasters.has(stream)
+    }
+  }
+
+  updateStreamState(stream, nextState) {
+    const now = Date.now()
+    const current = this.streamStates.get(stream) || {
+      state: 'idle',
+      started_at: null,
+      ended_at: null
+    }
+    if (nextState === 'live') {
+      current.state = 'live'
+      if (!current.started_at) {
+        current.started_at = now
+      }
+      current.ended_at = null
+    } else {
+      current.state = 'idle'
+      current.ended_at = now
+    }
+    this.streamStates.set(stream, current)
+    this.broadcastStreamControl(stream, {
+      t: 'stream.state',
+      body: this.getStreamState(stream)
+    })
+  }
+
+  sendStream(streamConnectionId, payload) {
+    if (this.streamControlConnections.has(streamConnectionId)) {
+      this.sendStreamControl(streamConnectionId, payload)
+      return
+    }
+    if (this.streamMediaConnections.has(streamConnectionId)) {
+      this.sendStreamMedia(streamConnectionId, payload)
+    }
   }
 
   sendError(connectionId, replyTo, code, message, details = null) {
