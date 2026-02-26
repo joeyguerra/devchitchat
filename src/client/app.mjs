@@ -696,7 +696,7 @@ const handleChannelUpdated = (msg) => {
   if (channelIndex !== -1) {
     store.dispatch({ type: 'channels/upsert', channel: msg.body.channel })
     if (msg.body.channel.channel_id === state.currentChannelId) {
-      dom.activeRoom.textContent = msg.body.channel.name
+      dom.activeRoom.textContent = `${SidebarTreePresenter.channelIcon(msg.body.channel)} ${msg.body.channel.name}`
       updateChannelLayoutMode()
       ensureVoiceStateForChannel(state.currentChannelId)
       callStateService.markUpdated('channel.updated')
@@ -1348,7 +1348,8 @@ const setActiveChannel = (channelId) => {
   const wasCurrentVoice = isVoiceChannel(state.currentChannelId)
   store.dispatch({ type: 'channels/setCurrent', channelId })
   updateChannelLayoutMode()
-  dom.activeRoom.textContent = state.channels.find((channel) => channel.channel_id === channelId)?.name || channelId
+  const activeChannel = state.channels.find((channel) => channel.channel_id === channelId)
+  dom.activeRoom.textContent = `${SidebarTreePresenter.channelIcon(activeChannel)} ${activeChannel?.name || channelId}`
   const cached = loadCachedMessages(channelId)
   if (cached) {
     store.dispatch({ type: 'messages/set', channelId, messages: cached })

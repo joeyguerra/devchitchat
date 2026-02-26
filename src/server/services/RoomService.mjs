@@ -14,7 +14,7 @@ export class RoomService {
       throw new ServiceError('BAD_REQUEST', 'Invalid room kind')
     }
     if (!name?.trim()) {
-      throw new ServiceError('BAD_REQUEST', 'Room name required')
+      throw new ServiceError('BAD_REQUESchannels-listT', 'Room name required')
     }
     const roomId = newId('r')
     const now = this.nowFn()

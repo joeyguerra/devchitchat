@@ -27,11 +27,38 @@ class MessagePresenter {
   }
 
   renderSearch(hits) {
+    this.dom.searchResults.innerHTML = ''
     if (!hits.length) {
-      this.dom.searchResults.textContent = 'No results'
+      const empty = document.createElement('div')
+      empty.className = 'search-results-empty'
+      empty.textContent = 'No results'
+      this.dom.searchResults.appendChild(empty)
       return
     }
-    this.dom.searchResults.textContent = hits.map((hit) => hit.snippet || hit.text).join(' | ')
+
+    const list = document.createElement('ul')
+    list.className = 'search-results-list'
+
+    hits.forEach((hit) => {
+      const item = document.createElement('li')
+      item.className = 'search-hit'
+
+      const meta = document.createElement('div')
+      meta.className = 'search-hit-meta'
+      const timeText = hit.ts ? new Date(hit.ts).toLocaleTimeString() : ''
+      const seqText = Number.isFinite(hit.seq) ? `#${hit.seq}` : ''
+      meta.textContent = [seqText, hit.user_id, timeText].filter(Boolean).join(' · ')
+
+      const snippet = document.createElement('div')
+      snippet.className = 'search-hit-snippet'
+      snippet.textContent = hit.snippet || hit.text || ''
+
+      item.appendChild(meta)
+      item.appendChild(snippet)
+      list.appendChild(item)
+    })
+
+    this.dom.searchResults.appendChild(list)
   }
 }
 

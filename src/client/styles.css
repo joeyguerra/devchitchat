@@ -5,7 +5,7 @@
   --panel-2: #0f151e;
   --text: #edf2f7;
   --muted: #9fb2c6;
-  --accent: #ffb347;
+  --accent: #358f78;
   --accent-2: #4dd6b3;
   --border: #202c3a;
   --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
@@ -288,7 +288,7 @@ button {
   font-family: inherit;
   font-size: var(--font-size-sm);
   line-height: 1.2;
-  cursor: pointer;
+  cursor: pointer;search-btn
   transition: transform 0.2s ease, background 0.2s ease;
 }
 
@@ -298,7 +298,7 @@ button:hover {
 }
 
 button.primary {
-  background: linear-gradient(135deg, var(--accent) 0%, #f08a5d 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
   color: #1c120a;
 }
 
@@ -312,15 +312,6 @@ button.primary {
 
 .admin-tools.vertical {
   grid-template-columns: 1fr;
-}
-
-.admin-tools.horizontal {
-  grid-template-columns: minmax(160px, 200px) 1fr;
-}
-
-.admin-bar {
-  display: grid;
-  gap: 8px;
 }
 
 .admin-panel {
@@ -432,75 +423,6 @@ body.sidebar-resizing {
   margin: 4px 0;
 }
 
-.room-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 6px;
-}
-
-.room-list li {
-  padding: 10px 12px;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: rgba(15, 21, 30, 0.7);
-  cursor: pointer;
-  transition: border 0.2s ease, transform 0.2s ease;
-}
-
-.room-list li.active {
-  border-color: var(--accent-2);
-  background: rgba(15, 30, 32, 0.7);
-}
-
-.room-list li:hover {
-  transform: translateY(-1px);
-  border-color: #31465c;
-}
-
-.room-section-header {
-  padding: 12px 12px 8px !important;
-  background: transparent !important;
-  border: none !important;
-  cursor: default !important;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #888;
-  margin-top: 8px;
-}
-
-.room-section-header:first-child {
-  margin-top: 0;
-}
-
-.room-section-header span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.room-item {
-  padding: 10px 12px;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: rgba(15, 21, 30, 0.7);
-  cursor: pointer;
-  transition: border 0.2s ease, transform 0.2s ease;
-}
-
-.room-item.active {
-  border-color: var(--accent-2);
-  background: rgba(15, 30, 32, 0.7);
-}
-
-.room-item:hover {
-  transform: translateY(-1px);
-  border-color: #31465c;
-}
-
 .hubs-list {
   list-style: none;
   margin: 0;
@@ -586,17 +508,13 @@ body.sidebar-resizing {
   font-size: var(--font-size-sm);
   display: flex;
   align-items: center;
+  opacity: 0.7;
   gap: 8px;
 }
 
 .channel-item.active {
-  border-color: var(--accent-2);
   background: rgba(15, 30, 32, 0.7);
-}
-
-.channel-item:hover {
-  transform: translateX(2px);
-  border-color: #31465c;
+  opacity: 1.0;
 }
 
 .channel-delete-btn {
@@ -708,9 +626,49 @@ body.sidebar-resizing {
 }
 
 .search-results {
+  min-height: 22px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(8, 12, 18, 0.7);
+  padding: 8px;
+}
+
+.search-results-empty {
   font-size: var(--font-size-sm);
   color: var(--muted);
-  min-height: 22px;
+  padding: 8px;
+}
+
+.search-results-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.search-hit {
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: rgba(12, 17, 24, 0.85);
+}
+
+.search-hit-meta {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  letter-spacing: 0.2px;
+  margin-bottom: 4px;
+}
+
+.search-hit-snippet {
+  font-size: var(--font-size-sm);
+  color: var(--text);
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .messages {
@@ -750,22 +708,6 @@ body.sidebar-resizing {
 
 .composer textarea {
   flex: 1;
-}
-
-.media {
-  display: grid;
-  gap: 12px;
-  align-content: start;
-  border-left: 1px solid var(--border);
-  overflow-y: auto;
-  padding: 12px;
-  min-height: 0;
-}
-
-.media-controls {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
 }
 
 .streams {
@@ -889,13 +831,6 @@ body.sidebar-resizing {
 .stream-label {
   font-size: var(--font-size-xs);
   color: var(--muted);
-}
-
-.section-title-with-action {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
 }
 
 .icon-btn {

@@ -96,7 +96,20 @@ class SidebarTreePresenter {
     input.focus()
     input.select()
   }
-
+  static channelIcon(channel) {
+    switch (true) {
+      case channel.kind === 'voice' && channel.visibility === 'private':
+        return '🔒 🔊'
+      case channel.kind === 'voice' && channel.visibility === 'public':
+        return '# 🔊'
+      case channel.kind === 'text' && channel.visibility === 'private':
+        return '🔒'
+      case channel.kind === 'text' && channel.visibility === 'public':
+        return '#'
+      default:
+        return '#'
+    }
+  }
   render() {
     this.dom.hubsList.innerHTML = ''
 
@@ -160,9 +173,7 @@ class SidebarTreePresenter {
         hubChannels.forEach((channel) => {
           const channelItem = document.createElement('li')
           channelItem.className = 'channel-item'
-          const kindIcon = channel.kind === 'voice' ? '🔊' : '#'
-          const visibilityIcon = channel.visibility === 'public' ? '🌍' : '🔒'
-          const icon = `${kindIcon} ${visibilityIcon}`
+          const icon = SidebarTreePresenter.channelIcon(channel)
           channelItem.innerHTML = ''
 
           const channelName = document.createElement('span')
